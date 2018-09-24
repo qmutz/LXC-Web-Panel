@@ -2,7 +2,7 @@ import sys
 import time
 import hashlib
 import sqlite3
-import ConfigParser
+from configparser import ConfigParser
 
 from flask import session, render_template, g, flash, request, jsonify
 
@@ -53,7 +53,8 @@ cgroup_ext = {
 
 
 # configuration
-config = ConfigParser.SafeConfigParser()
+#config = ConfigParser.SafeConfigParser()
+config = ConfigParser()
 
 
 def read_config_file():
@@ -100,7 +101,7 @@ def if_logged_in(function=render_template, f_args=('login.html', )):
                     # token exists, access granted
                     return handler(*args, **kwargs)
             return function(*f_args)
-        new_handler.func_name = handler.func_name
+        new_handler.__name__ = handler.__name__
         return new_handler
     return decorator
 
@@ -157,6 +158,6 @@ def api_auth():
                     return jsonify(status="error", error="Unauthorized"), 401
             else:
                 return jsonify(status="error", error="Unauthorized"), 401
-        new_handler.func_name = handler.func_name
+        new_handler.__name__ = handler.__name__
         return new_handler
     return decorator

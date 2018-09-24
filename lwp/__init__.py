@@ -5,12 +5,11 @@ import re
 import time
 import platform
 import subprocess
-import ConfigParser
 
 from lwp.exceptions import ContainerNotExists, LxcConfigFileNotComplete
 from lwp.lxclite import exists, stopped
 from lwp.lxclite import lxcdir
-from lwp.utils import cgroup_ext
+from lwp.utils import cgroup_ext, ConfigParser
 
 SESSION_SECRET_FILE = '/etc/lwp/session_secret'
 

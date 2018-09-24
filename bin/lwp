@@ -8,7 +8,7 @@ from lwp import SESSION_SECRET_FILE
 if __name__ == '__main__':
     if '--generate-session-secret' in sys.argv[1:]:
         key = os.urandom(24)
-        with os.fdopen(os.open(SESSION_SECRET_FILE, os.O_WRONLY | os.O_CREAT, 0644), 'w') as handle:
+        with os.fdopen(os.open(SESSION_SECRET_FILE, os.O_WRONLY | os.O_CREAT, 0o644), 'w') as handle:
             handle.write(key)
             exit(0)
 

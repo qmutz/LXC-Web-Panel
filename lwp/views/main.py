@@ -5,13 +5,12 @@ import re
 import time
 import socket
 import subprocess
-import ConfigParser
 
 from flask import Blueprint, request, session, g, redirect, url_for, abort, render_template, flash, jsonify
 
 import lwp
 import lwp.lxclite as lxc
-from lwp.utils import query_db, if_logged_in, get_bucket_token, hash_passwd, read_config_file, cgroup_ext
+from lwp.utils import query_db, if_logged_in, get_bucket_token, hash_passwd, read_config_file, cgroup_ext, ConfigParser
 from lwp.views.auth import AUTH
 
 # TODO: see if we can move this block somewhere better
