@@ -2,7 +2,7 @@ import sys
 import time
 import hashlib
 import sqlite3
-from configparser import ConfigParser
+from configparser import ConfigParser, RawConfigParser
 
 from flask import session, render_template, g, flash, request, jsonify
 
@@ -115,11 +115,11 @@ def get_bucket_token(container):
 
 
 def hash_passwd(passwd):
-    return hashlib.sha512(passwd).hexdigest()
+    return hashlib.sha512(passwd.encode('utf-8')).hexdigest()
 
 
 def get_token():
-    return hashlib.md5(str(time.time())).hexdigest()
+    return hashlib.md5(str(time.time()).encode('utf-8')).hexdigest()
 
 
 def check_session_limit():

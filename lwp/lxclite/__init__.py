@@ -66,7 +66,6 @@ def copy(orig=None, new=None, snapshot=False):
             command = 'lxc-copy -n {} -N {} -s'.format(orig, new)
         else:
             command = 'lxc-copy -n {} -N {}'.format(orig, new)
-        print(orig,new)
         return _run(command)
 
 
@@ -79,9 +78,9 @@ def info(container):
 
     output = _run('lxc-info -qn {}'.format(container), output=True).splitlines()
 
-    state = {'pid': 0}
+    state = {b'pid': 0}
     for val in output:
-        state[val.split(':')[0].lower().strip().replace(" ", "_")] = val.split(':')[1].strip()
+        state[val.split(b':')[0].lower().strip().replace(b" ", b"_")] = val.split(b':')[1].strip()
     
     return state
 
@@ -98,14 +97,15 @@ def snapshots(container):
         for val in output.splitlines():
             splitted = val.split()
             snap = {'name':splitted[0],'date':'{} {}'.format(splitted[-2],splitted[-1]),'path':splitted[1][1:-1]}
-            size = _run('du -sh {}/{}'.format(snap['path'],snap['name']), output=True)
-            if size:
-                snap['size'] = size.splitlines()[0].split('\t')[0]
+            if os.path.exists(os.path.join(snap['path'],snap['name'])):
+                size = _run('du -sh {}/{}'.format(snap['path'],snap['name']), output=True)
+                if size:
+                    snap['size'] = size.splitlines()[0].split('\t')[0]
             sn_list.append(snap)
     return sn_list
 
 def lxcdir():
-    return _run('lxc-config lxc.lxcpath', output=True).strip()
+    return _run('lxc-config lxc.lxcpath', output=True).strip().decode('utf-8')
 
 
 def ls():
@@ -115,11 +115,14 @@ def ls():
     lxc_dir = lxcdir()
     ct_list = []
 
+    lsdir = os.listdir(lxc_dir)
+
     try:
         lsdir = os.listdir(lxc_dir)
         for i in lsdir:
             # ensure that we have a valid path and config file
-            if os.path.isdir('{}/{}'.format(lxc_dir, i)) and os.path.isfile(('{}/{}/config'.format(lxc_dir, i))):
+
+            if os.path.isdir('{}/{}'.format(lxc_dir, i)) and os.path.isfile('{}/{}/config'.format(lxc_dir, i)):
                 ct_list.append(i)
     except OSError:
         ct_list = []
@@ -137,16 +140,15 @@ def listx():
     status_container = {}
 
     outcmd = _run('lxc-ls --fancy | grep -o \'^[^-].*\' | tail -n+2', output=True).splitlines()
-
     for line in outcmd:
-        status_container[line.split()[0]] = line.split()[1:]
-
+        status_container[line.split()[0].decode('utf-8')] = line.split()[1:]
+        
     for container in ls():
-        if status_container[container][0] == 'RUNNING':
+        if status_container[container][0] == b'RUNNING':
             running.append(container)
-        elif status_container[container][0] == 'STOPPED':
+        elif status_container[container][0] == b'STOPPED':
             stopped.append(container)
-        elif status_container[container][0] == 'FROZEN':
+        elif status_container[container][0] == b'FROZEN':
             frozen.append(container)
 
     return {'RUNNING': running,

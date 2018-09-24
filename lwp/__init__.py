@@ -1,5 +1,6 @@
 from __future__ import absolute_import, print_function, division
 
+from io import StringIO
 import os
 import re
 import time
@@ -9,24 +10,21 @@ import subprocess
 from lwp.exceptions import ContainerNotExists, LxcConfigFileNotComplete
 from lwp.lxclite import exists, stopped
 from lwp.lxclite import lxcdir
-from lwp.utils import cgroup_ext, ConfigParser
+from lwp.utils import cgroup_ext, ConfigParser, RawConfigParser
 
 SESSION_SECRET_FILE = '/etc/lwp/session_secret'
 
-
-class FakeSection(object):
+class NormalizeConfig(object):
     def __init__(self, fp):
         self.fp = fp
         self.sechead = '[DEFAULT]\n'
-
-    def readline(self):
-        if self.sechead:
-            try:
-                return self.sechead
-            finally:
-                self.sechead = None
-        else:
-            return self.fp.readline()
+        
+    def read(self):
+        config = StringIO()
+        config.write(self.sechead)
+        config.write(self.fp.read())
+        config.seek(0, os.SEEK_SET)
+        return config
 
 
 def del_section(filename=None):
@@ -131,11 +129,11 @@ def host_disk_usage(partition=None):
                     'percent': usage[4]}
     """
     partition = lxcdir()
-    usage = subprocess.check_output(['df -h %s' % partition], shell=True).split('\n')[1].split()
-    return {'total': usage[1],
-            'used': usage[2],
-            'free': usage[3],
-            'percent': usage[4]}
+    usage = subprocess.check_output(['df','-h', partition], shell=True).split(b'\n')[1].split()
+    return {'total': usage[1].decode('utf-8'),
+            'used': usage[2].decode('utf-8'),
+            'free': usage[3].decode('utf-8'),
+            'percent': usage[4].decode('utf-8')}
 
 
 def host_uptime():
@@ -201,9 +199,10 @@ def get_net_settings():
         filename = '/etc/default/lxc'
     if not file_exist(filename):
         raise LxcConfigFileNotComplete('Cannot find lxc-net config file! Check if /etc/default/lxc-net exists')
-    config = ConfigParser.SafeConfigParser()
-
-    config.readfp(FakeSection(open(filename)))
+    normalized = NormalizeConfig(open(filename)).read()
+    config = ConfigParser()
+    config.readfp(normalized)
+    
     cfg = {
         'use': config.get('DEFAULT', 'USE_LXC_BRIDGE').strip('"'),
         'bridge': config.get('DEFAULT', 'LXC_BRIDGE').strip('"'),
@@ -225,29 +224,30 @@ def get_container_settings(name, status=None):
     filename = '{}/{}/config'.format(lxcdir(), name)
     if not file_exist(filename):
         return False
-    config = ConfigParser.SafeConfigParser()
-    config.readfp(FakeSection(open(filename)))
-
+    normalized = NormalizeConfig(open(filename)).read()
+    config = ConfigParser()
+    config.readfp(normalized)
     cfg = {}
     # for each key in cgroup_ext add value to cfg dict and initialize values
     for options in cgroup_ext.keys():
         if config.has_option('DEFAULT', cgroup_ext[options][0]):
+            print('yes')
             cfg[options] = config.get('DEFAULT', cgroup_ext[options][0])
         else:
             cfg[options] = ''  # add the key in dictionary anyway to match form
 
     # if ipv4 is unset try to determinate it
-    if cfg['ipv4'] == '' and status == 'RUNNING':
-        cmd = ['lxc-ls --fancy --fancy-format name,ipv4|grep -w \'%s\\s\' | awk \'{ print $2 }\'' % name]
+    if cfg['ipv4'] == '' and status == b'RUNNING':
+        cmd = ['lxc-ls --fancy --fancy-format name,ipv4|grep -w \'%s\' | awk \'{ print $2 }\'' % name]
+        cfg['ipv4'] = subprocess.check_output(cmd, shell=True)
         try:
-            cfg['ipv4'] = subprocess.check_output(cmd, shell=True)
+            cfg['ipv4'] = subprocess.check_output(cmd, shell=True).strip().decode('utf-8')
         except subprocess.CalledProcessError:
             cfg['ipv4'] = ''
 
     # parse memlimits to int
     cfg['memlimit'] = re.sub(r'[a-zA-Z]', '', cfg['memlimit'])
     cfg['swlimit'] = re.sub(r'[a-zA-Z]', '', cfg['swlimit'])
-
     return cfg
 
 
@@ -256,8 +256,9 @@ def push_net_value(key, value, filename='/etc/default/lxc-net'):
     replace a var in the lxc-net config file
     """
     if filename:
-        config = ConfigParser.RawConfigParser()
-        config.readfp(FakeSection(open(filename)))
+        normalized = NormalizeConfig(open(filename)).read()
+        config = RawConfigParser()
+        config.readfp(normalized)
         if not value:
             config.remove_option('DEFAULT', key)
         else:
@@ -298,7 +299,7 @@ def push_config_value(key, value, container=None):
         if filename:
             values = []
             i = 0
-
+            print(filename)
             with open(filename, 'r') as load:
                 read = load.readlines()
 
@@ -313,9 +314,9 @@ def push_config_value(key, value, container=None):
     if container:
         filename = '{}/{}/config'.format(lxcdir(), container)
         save = save_cgroup_devices(filename=filename)
-
-        config = ConfigParser.RawConfigParser()
-        config.readfp(FakeSection(open(filename)))
+        normalized = NormalizeConfig(open(filename)).read()
+        config = ConfigParser()
+        config.readfp(normalized)
         if not value:
             config.remove_option('DEFAULT', key)
         elif key == cgroup_ext['memlimit'][0] or key == cgroup_ext['swlimit'][0] and value is not False:
