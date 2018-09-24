@@ -70,7 +70,7 @@ def about():
     """
     about page
     """
-    return render_template('about.html', containers=lxc.ls(), version=lwp.check_version())
+    return render_template('about.html', containers=lxc.ls(), version=lwp.check_version(), dist=lwp.name_distro(), host=socket.gethostname())
 
 
 @mod.route('/<container>/edit', methods=['POST', 'GET'])
@@ -80,8 +80,9 @@ def edit(container=None):
     edit containers page and actions if form post request
     """
     host_memory = lwp.host_memory_usage()
-    cfg = lwp.get_container_settings(container)
-
+    info = lxc.info(container)
+    cfg = lwp.get_container_settings(container,info['state'])
+    print(cfg)
     if request.method == 'POST':
         form = request.form.copy()
 
@@ -120,10 +121,28 @@ def edit(container=None):
     regex = {}
     for k, v in cgroup_ext.items():
         regex[k] = v[1]
+    """
+    Name:           els2
+    State:          RUNNING
+    PID:            15099
+    IP:             10.0.3.88
+    CPU use:        552.17 seconds
+    BlkIO use:      64.01 MiB
+    Memory use:     284.38 MiB
+    KMem use:       16.91 MiB
+    Link:           vethXRQ9IG
+     TX bytes:      2.14 MiB
+     RX bytes:      151.57 KiB
+     Total bytes:   2.29 MiB
+     ['blkio_use', 'name', 'rx_bytes', 'ip', 'kmem_use', 'pid', 'memory_use', 'state', 'link', 'cpu_use', 'tx_bytes', 'total_bytes']
 
-    return render_template('edit.html', containers=lxc.ls(), container=container, infos=infos,
+
+    """
+    print(info.keys())
+    snapshots = lxc.snapshots(container)
+    return render_template('edit.html', all_info=info, snapshots=lxc.snapshots(container), containers=lxc.ls(), container=container, infos=infos,
                            settings=cfg, host_memory=host_memory, storage_repos=storage_repos, regex=regex,
-                           clonable_containers=lxc.listx()['STOPPED'])
+                           clonable_containers=lxc.listx()['STOPPED'], dist=lwp.name_distro(), host=socket.gethostname())
 
 
 @mod.route('/settings/lxc-net', methods=['POST', 'GET'])
@@ -178,7 +197,7 @@ def lxc_net():
                 flash(u'Failed to restart LXC networking.', 'error')
         else:
             flash(u'Stop all containers before restart lxc-net.', 'warning')
-    return render_template('lxc-net.html', containers=lxc.ls(), cfg=lwp.get_net_settings(), running=lxc.running())
+    return render_template('lxc-net.html', containers=lxc.ls(), cfg=lwp.get_net_settings(), running=lxc.running(), dist=lwp.name_distro(), host=socket.gethostname())
 
 
 @mod.route('/lwp/users', methods=['POST', 'GET'])
@@ -290,7 +309,7 @@ def lwp_users():
     nb_users = query_db("SELECT COUNT(id) as num FROM users", [], one=True)
     su_users = query_db("SELECT COUNT(id) as num FROM users WHERE su='Yes'", [], one=True)
 
-    return render_template('users.html', containers=lxc.ls(), users=users, nb_users=nb_users, su_users=su_users)
+    return render_template('users.html', containers=lxc.ls(), users=users, nb_users=nb_users, su_users=su_users, dist=lwp.name_distro(), host=socket.gethostname())
 
 
 @mod.route('/lwp/tokens', methods=['POST', 'GET'])
@@ -321,7 +340,7 @@ def lwp_tokens():
         flash(u'Token %s successfully deleted!' % token, 'success')
 
     tokens = query_db("SELECT description, token, username FROM api_tokens ORDER BY token DESC")
-    return render_template('tokens.html', containers=lxc.ls(), tokens=tokens)
+    return render_template('tokens.html', containers=lxc.ls(), tokens=tokens, dist=lwp.name_distro(), host=socket.gethostname())
 
 
 @mod.route('/checkconfig')
@@ -333,7 +352,7 @@ def checkconfig():
     if session['su'] != 'Yes':
         return abort(403)
 
-    return render_template('checkconfig.html', containers=lxc.ls(), cfg=lxc.checkconfig())
+    return render_template('checkconfig.html', containers=lxc.ls(), cfg=lxc.checkconfig(), dist=lwp.name_distro(), host=socket.gethostname())
 
 
 @mod.route('/action', methods=['GET'])
@@ -516,11 +535,11 @@ def create_container():
     return redirect(url_for('main.home'))
 
 
-@mod.route('/action/clone-container', methods=['GET', 'POST'])
+@mod.route('/action/copy-container', methods=['GET', 'POST'])
 @if_logged_in()
-def clone_container():
+def copy_container():
     """
-    verify all forms to clone a container
+    verify all forms to copy a container
     """
     if session['su'] != 'Yes':
         return abort(403)
@@ -539,16 +558,16 @@ def clone_container():
             out = None
 
             try:
-                out = lxc.clone(orig=orig, new=name, snapshot=snapshot)
+                out = lxc.copy(orig=orig, new=name, snapshot=snapshot)
             except lxc.ContainerAlreadyExists:
                 flash(u'The Container %s already exists!' % name, 'error')
             except subprocess.CalledProcessError:
                 flash(u'Can\'t snapshot a directory', 'error')
 
             if out and out == 0:
-                flash(u'Container %s cloned into %s successfully!' % (orig, name), 'success')
+                flash(u'Container %s copy into %s successfully!' % (orig, name), 'success')
             elif out and out != 0:
-                flash(u'Failed to clone %s into %s!' % (orig, name), 'error')
+                flash(u'Failed to copy %s into %s!' % (orig, name), 'error')
 
         else:
             if name == '':

@@ -54,7 +54,7 @@ def create(container, template='ubuntu', storage=None, xargs=None):
     return _run(command)
 
 
-def clone(orig=None, new=None, snapshot=False):
+def copy(orig=None, new=None, snapshot=False):
     """
     Clone a container (without all options)
     """
@@ -63,10 +63,10 @@ def clone(orig=None, new=None, snapshot=False):
             raise ContainerAlreadyExists('Container {} already exist!'.format(new))
 
         if snapshot:
-            command = 'lxc-clone -s {} {}'.format(orig, new)
+            command = 'lxc-copy -n {} -N {} -s'.format(orig, new)
         else:
-            command = 'lxc-clone {} {}'.format(orig, new)
-
+            command = 'lxc-copy -n {} -N {}'.format(orig, new)
+        print(orig,new)
         return _run(command)
 
 
@@ -82,9 +82,27 @@ def info(container):
     state = {'pid': 0}
     for val in output:
         state[val.split(':')[0].lower().strip().replace(" ", "_")] = val.split(':')[1].strip()
-
+    
     return state
 
+def snapshots(container):
+    """
+    List container snapshots
+    """
+    if not exists(container):
+        raise ContainerDoesntExists('Container {} does not exist!'.format(container))
+
+    output = _run('lxc-snapshot -LCn {}'.format(container), output=True)
+    sn_list = []
+    if output:
+        for val in output.splitlines():
+            splitted = val.split()
+            snap = {'name':splitted[0],'date':'{} {}'.format(splitted[-2],splitted[-1]),'path':splitted[1][1:-1]}
+            size = _run('du -sh {}/{}'.format(snap['path'],snap['name']), output=True)
+            if size:
+                snap['size'] = size.splitlines()[0].split('\t')[0]
+            sn_list.append(snap)
+    return sn_list
 
 def lxcdir():
     return _run('lxc-config lxc.lxcpath', output=True).strip()
