@@ -1,3 +1,23 @@
+Version 0.10-beta1 (24-09-2018)
+===========================================================
+
+Removed Features
+-----------------------
+
+* Python-ldap is not a requierment for setup.py install
+
+Bug Fixes
+-----------------------
+* lxc-clone replaced by lxc-copy
+
+Added Features
+-----------------------
+
+* Updated UI libraries (Bootstrap 4, FontAwesome 4)
+* New theme Bootswatch
+* List snapshots (in progress)
+* Reorganized dashboard and container views
+
 Version 0.9 (31-01-2016)
 ===========================================================
 
@@ -33,4 +53,3 @@ TODO
 
 Thanks to Alexander Knöbel, Boscorillium, Claudio Cesar Sanchez Tejeda, 
 Claudio Valenti and Lukáš Raška for their contributions to this release.
-
