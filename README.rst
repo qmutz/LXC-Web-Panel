@@ -44,7 +44,10 @@ If you want to run lwp from source code:
   cd LXC-Web-Panel
   pip install cryptography # installing pyopenssl fails if cryptography is not already installed
   python setup.py install
-  cp lwp.example.conf /etc/lwp/lwp.conf
+  mkdir /etc/lwp && mkdir /var/lwp
+  cp lwp.example.conf /etc/lwp/lwp.conf #default auth database user admin/admin
+  cp lwp.db /var/lwp/lwp.db
+  
 
   fab build_assets         # build assets using python-fabric
   ./setup.py develop       # install python package
