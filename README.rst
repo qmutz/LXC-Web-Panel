@@ -19,6 +19,18 @@ We are working on this heavily so expect frequent changes in code, installation 
 
 All contributions are welcomed.
 
+.. image:: screenshots/container_details.png
+  :width: 300
+  :alt: Container snapshots
+  
+.. image:: screenshots/create_user.png
+  :width: 300
+  :alt: Container snapshots
+
+.. image:: screenshots/container_snapshots.png
+  :width: 300
+  :alt: Container snapshots
+
 Installation on rpm system or from source code
 ----------------------------------------------
 
