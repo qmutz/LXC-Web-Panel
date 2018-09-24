@@ -1,3 +1,5 @@
+DONT USE UNTIL issue #2 IS COMPLETED
+
 LXC-Web-Panel reloaded
 ==========================
 
