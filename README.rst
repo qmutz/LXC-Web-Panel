@@ -49,16 +49,6 @@ If you want to run lwp from source code:
   mkdir /etc/lwp && mkdir /var/lwp
   cp lwp.example.conf /etc/lwp/lwp.conf #default auth database user admin/admin
   cp lwp.db /var/lwp/lwp.db
-  
-
-  fab build_assets         # build assets using python-fabric
-  ./setup.py develop       # install python package
-  mkdir -p /etc/lwp        # create config/var dirs and popolate it
-  mkdir -p /var/lwp
-  cp lwp.example.conf /etc/lwp/lwp.conf
-  cp lwp.db /var/lwp/lwp.db
-  service firewalld stop   # for fedora
-  service lxc start        # if service lxc exists
   ./bin/lwp --debug        # run lwp wth debug support
 
 
