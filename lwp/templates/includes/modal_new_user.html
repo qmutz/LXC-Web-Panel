@@ -1,27 +1,19 @@
-<div id="newUser" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="newUserLabel" aria-hidden="true">
+<div id="newUser" class="modal" tabindex="-1" role="dialog" aria-labelledby="newUserLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
     <form action="{{ url_for('main.lwp_users') }}" method="post" id="newUser" style="margin:0;">
         <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
             <h3 id="newUserLabel">New user</h3>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
         </div>
         <div class="modal-body">
-            <div class="control-group">
-                <div class="controls input-prepend">
-                    <span class="add-on"><i class="icon-user"></i></span>
-                    <input type="text" placeholder="Username (Login) *" pattern="[a-zA-Z0-9]{3,32}" name="username" required>
-
-                    <span class="add-on" style="margin-left:30px;"><i class="icon-user"></i></span>
-                    <input type="text" name="name" pattern="[a-z A-Z0-9]{3,32}" placeholder="Name">
-                </div>
+            <div class="form-group">
+                <input class="form-control" type="text" placeholder="Username (Login) *" pattern="[a-zA-Z0-9]{3,32}" name="username" required>
+                <input class="form-control" type="text" name="name" pattern="[a-z A-Z0-9]{3,32}" placeholder="Name">
             </div>
-            <div class="control-group">
-                <div class="controls input-prepend">
-                    <span class="add-on"><i class="icon-lock"></i></span>
-                    <input type="password" name="password1" id="password1" placeholder="Password *" required>
-
-                    <span class="add-on" style="margin-left:30px;"><i class="icon-lock"></i></span>
-                    <input type="password" name="password2" placeholder="Re-type *" required>
-                </div>
+            <div class="form-group">
+                <input class="form-control" type="password" name="password1" id="password1" placeholder="Password" required>
+                <input class="form-control" type="password" name="password2" placeholder="Re-type password" required>
             </div>
         </div>
         <div class="modal-footer">
@@ -32,4 +24,6 @@
             </div>
         </div>
     </form>
+    </div>
+    </div>
 </div>

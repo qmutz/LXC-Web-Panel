@@ -1,13 +1,19 @@
-<div id="reboot" class="modal hide fade" role="dialog" aria-labelledby="rebootLabel" aria-hidden="true">
+<div id="reboot" class="modal" role="dialog" aria-labelledby="rebootLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
     <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-        <h3 id="rebootLabel" class="text-error">Oh wait!</h3>
+        <h3 id="rebootLabel" class="modal-title">Careful</h3>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
     </div>
     <div class="modal-body">
-        <strong>Reboot this system now ?</strong>
+        <div class="alert alert-warning">
+            <strong>Reboot this system now ?</strong>
+        </div>
     </div>
     <div class="modal-footer">
         <button class="btn btn-small" data-dismiss="modal" aria-hidden="true">Cancel</button>
         <a class="btn btn-danger" href="{{ url_for('main.action', name='host', action='main.reboot', token=session.token) }}"><i class="icon-off icon-white"></i> Reboot</a>
+    </div>
+    </div>
     </div>
 </div>

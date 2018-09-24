@@ -1,239 +1,301 @@
 {% extends "layout.html" %}
 {% block title %}{{container|capitalize}}{% endblock %}
 {% block content %}
-<div class="span6">
-    {{ super() }}
-    <h3 class="head">{{ container|capitalize }}</h3>
-    <div class="btn-group pull-right" data-toggle="buttons-radio">
-        <div class="btn-group">
-            {% set start_action = {'STOPPED':'start','FROZEN':'unfreeze'} %}
-            <a class="btn{% if infos['status'] == 'RUNNING' %} disabled{% endif %}" {% if infos['status'] == 'STOPPED' or infos['status'] == 'FROZEN' %}href="{{ url_for('main.action', name=container, action=start_action[infos['status']], from='edit') }}"{% endif %}><i class="icon-play"></i> Start</a>
-            <a class="btn{% if infos['status'] == 'STOPPED' %} disabled{% endif %}" {% if infos['status'] == 'RUNNING' or infos['status'] == 'FROZEN' %}href="{{ url_for('main.action', name=container, action='stop', from='edit') }}"{% endif %}><i class="icon-stop"></i> Stop</a>
-            <a class="btn{% if infos['status'] == 'FROZEN' or infos['status'] == 'STOPPED' %} disabled{% endif %}" {% if infos['status'] == 'RUNNING' %}href="{{ url_for('main.action', name=container, action='freeze', from='edit') }}"{% endif %}><i class="icon-pause"></i> Freeze</a>
+
+{{ super() }}
+{% set span = {'RUNNING':'success','FROZEN':'info','STOPPED':'important'} %}
+{% set start_action = {'STOPPED':'start','FROZEN':'unfreeze'} %}
+<div class="card">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-lg-12">
+                <label for="utsname">Hostname</label>
+                <h3 class="head">
+                    {% if infos['status']== 'RUNNING' %}
+                        <i class="fa fa-circle text-success" aria-hidden="true"></i>&nbsp;
+                    {% elif infos['status'] == 'FROZEN' %}
+                        <i class="fa fa-circle text-warning" aria-hidden="true"></i>&nbsp;
+                    {% else %}
+                        <i class="fa fa-circle-thin text-danger" aria-hidden="true"></i>&nbsp;
+                    {% endif %}
+                    {{ settings.utsname }}
+                &nbsp;{% if settings.ipv4  %}{{settings.ipv4}}{% endif %}
+                {% if settings.flags == 'up' %}<span class="badge badge-success">Up</span>{% else %}<span class="badge badge-error">Down</span>{% endif %}
+                
+                <div class="pull-right">
+                    {% if infos['status'] == 'RUNNING' %}
+                    <span class="btn btn-link btn-block">{{ infos['status'] }}
+                    {% else %}
+                    
+                    <a class="btn btn-block btn-primary{% if infos['status'] == 'RUNNING' %} disabled{% endif %}" {% if infos['status'] == 'STOPPED' or infos['status'] == 'FROZEN' %}href="{{ url_for('main.action', name=container, action=start_action[infos['status']], from='edit') }}"{% endif %}>
+                        <i class="icon-play"></i> Start
+                    </a>
+                    {% endif %}
+                    {% if infos.status != 'STOPPED' %}<span class="badge"><strong>Pid :</strong> {{ infos.pid }}</span>{% endif %}
+                </div>
+                </h3>
+                
+            </div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-lg-9">
+                <ul class="nav nav-pills">
+                    <li>
+                        {% if settings.start_auto == '1' %}
+                            <span class="btn btn-outline-primary">Start on boot
+                            {{ settings.start_delay }} {{ settings.start_order }}
+                            </span>
+                        {% else %}
+                            <span class="btn btn-outline-disabled">Start on boot</span>
+                        {% endif %}
+                    </li>
+                    {% if infos.status == "STOPPED" %}
+                        <li><a class="btn btn-outline-primary" data-toggle="modal" data-target="#cloneCT"> <i class="icon-repeat icon-white"></i> Clone <abbr title="Container">CT</abbr></a></li>
+                    {% endif %}
+                    {% if storage_repos %}
+                        <li><a class="btn btn-outline-info" data-toggle="modal" data-target="#backupCT"> <i class="icon-hdd icon-white"></i> Backup <abbr title="Container">CT</abbr></a></li>
+                    {% endif %}
+                </ul>
+                <hr>
+                <ul class="nav nav-pills">
+                    <li class="text-center">
+                        <h5>&nbsp;&nbsp;{{ settings.arch }}&nbsp;&nbsp;</h5>
+                        Arch.
+                    </li>
+                    <li class="text-center">
+                        <h5 id="{{ container }}">&nbsp;&nbsp;{% if infos.memusg %}{{ render_memory_wrapper(infos.memusg) }}/{% endif %}{% if settings.memlimit %}{{ settings.memlimit }}{% else %}{{ host_memory.total }}{% endif %}&nbsp;&nbsp;</h5>
+                        Memory
+                    </li>
+                    <li class="text-center">
+                        <h5>&nbsp;&nbsp;{% if settings.cpus %}{{ settings.cpus }}{% else %}All{% endif %}&nbsp;&nbsp;</h5>
+                        CPU
+                    </li>
+                    <li class="text-center">
+                        <h5>&nbsp;&nbsp;{{ all_info.link }}&nbsp;&nbsp;</h5>
+                        <i class="fa fa-long-arrow-down" aria-hidden="true"></i>{{all_info.rx_bytes}}/<i class="fa fa-long-arrow-up" aria-hidden="true"></i>{{all_info.tx_bytes}}
+                    </li>
+                    <li class="text-center">
+                        <h5>&nbsp;&nbsp;{{ snapshots|length }}&nbsp;&nbsp;</h5>
+                        Snapshots
+                    </li>
+                </ul>
+                
+            </div>
+            <div class="col-lg-3">
+                <div class="btn-toolbar">
+                    <div class="btn-group">
+
+                        <a class="btn btn-primary{% if infos['status'] == 'STOPPED' %} disabled{% endif %}" {% if infos['status'] == 'RUNNING' or infos['status'] == 'FROZEN' %}href="{{ url_for('main.action', name=container, action='stop', from='edit') }}"{% endif %}><i class="icon-stop"></i> Stop</a>
+                        <a class="btn btn-primary{% if infos['status'] == 'FROZEN' or infos['status'] == 'STOPPED' %} disabled{% endif %}" {% if infos['status'] == 'RUNNING' %}href="{{ url_for('main.action', name=container, action='freeze', from='edit') }}"{% endif %}><i class="icon-pause"></i> Freeze</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-
+</div>
+    
     <form id="config" class="form-horizontal" action="{{ url_for('main.edit', container=container) }}" method="post">
-        <div class="control-group">
-            <label class="control-label" for="utsname">Hostname</label>
-            <div class="controls">
-                <input pattern="{{ regex.utsname }}" type="text" id="utsname" name="utsname" value="{{ settings.utsname }}">
+    <ul class="nav nav-pills nav-fill" id="myTab" role="tablist">
+      <li class="nav-item">
+        <a class="nav-link active" id="boot-tab" data-toggle="tab" href="#boot" role="tab" aria-controls="home" aria-selected="true">Boot</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="network-tab" data-toggle="tab" href="#network" role="tab" aria-controls="network" aria-selected="false">Network</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="resources-tab" data-toggle="tab" href="#resources" role="tab" aria-controls="resources" aria-selected="false">Resources</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="logging-tab" data-toggle="tab" href="#logging" role="tab" aria-controls="logging" aria-selected="false">Logging</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="snapshots-tab" data-toggle="tab" href="#snapshots" role="tab" aria-controls="snapshots" aria-selected="false">Snapshots</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="misc-tab" data-toggle="tab" href="#misc" role="tab" aria-controls="misc" aria-selected="false">Misc</a>
+      </li>
+    </ul>
+    <div class="tab-content" id="myTabContent">
+        <div class="tab-pane fade show active" id="boot" role="tabpanel" aria-labelledby="boot-tab">
+            <div class="card">
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="utsname">Hostname</label>
+                        <input class="form-control" pattern="{{ regex.utsname }}" type="text" id="utsname" name="utsname" value="{{ settings.utsname }}">
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="start_auto" name="start_auto" value="{{ settings.start_auto }}" {% if settings.start_auto == '1' %} checked{% endif %}/>
+                        <label  class="form-check-label" for="start_auto">Start at boot</label>
+                    </div>
+                    <div class="form-group">
+                        <label for="start_delay">Delay at boot time</label>
+                        <input class="form-control" pattern="{{ regex.start_delay }}" type="number" id="start_delay" name="start_delay" value="{{ settings.start_delay }}" placeholder="Undefined">
+                    </div>
+                    <div class="form-group">
+                        <label for="start_order">Start order</label>
+                        <input class="form-control" pattern="{{ regex.start_order }}" type="number" id="start_order" name="start_order" value="{{ settings.start_order }}" placeholder="Undefined">
+                    </div>
+                </div>
             </div>
         </div>
+        <div class="tab-pane fade" id="network" role="tabpanel" aria-labelledby="network-tab">
+            <div class="card">
+                <div class="card-body">
+                <div class="form-check switch-network-flags">
+                    <input type="checkbox" class="form-check-input" id="flags" name="flags" value="{{ settings.flags }}"{% if settings.flags == 'up' %} checked{% endif %}/>
+                    <label class="form-check-label" for="flags">Network flag</label>
+                </div>
+                <div id="network"{% if not settings.flags %} class="hide"{% endif %}>
+                </div>
+                <div class="form-group">
+                    <label for="type">Network type</label>
+                    <select class="form-control" pattern="{{ regex.type }}" type="text" id="type" name="type" value="{{ settings.type }}">
+                        <option value="empty" {% if settings.type == "empty" %}selected{% endif %}>empty</option>
+                        <option value="veth" {% if settings.type == "veth" %}selected{% endif %}>veth</option>
+                        <option value="vlan" {% if settings.type == "vlan" %}selected{% endif %}>vlan</option>
+                        <option value="macvlan" {% if settings.type == "macvlan" %}selected{% endif %}>macvlan</option>
+                        <option value="phys" {% if settings.type == "phys" %}selected{% endif %}>phys</option>top
+                    </select>
+                </div>
 
-        <hr>
+                <div class="form-group">
+                    <label for="link">Network link</label>
+                    <input class="form-control" pattern="{{ regex.link }}" type="text" id="link" name="link" value="{{ settings.link }}" placeholder="Undefined">
+                </div>
 
-        <div class="control-group">
-            <label class="control-label" for="start_auto">Start at boot</label>
-            <div class="controls">
-                <input type="checkbox" id="start_auto" name="start_auto" value="{{ settings.start_auto }}" {% if settings.start_auto == '1' %} checked{% endif %}/>
+                <div class="form-group">
+                    <label for="hwaddr">HW address</label>
+                    <input class="form-control" pattern="{{ regex.hwaddr }}" type="text" id="hwaddr" name="hwaddr" value="{{ settings.hwaddr }}" placeholder="Undefined">
+                </div>
+
+                <div class="form-group">
+                    <label for="ipv4">IPv4 address</label>
+                    <input class="form-control" pattern="{{ regex.ipv4 }}" type="text" id="ipv4" name="ipv4" value="{{ settings.ipv4 }}" placeholder="Undefined">
+                </div>
+                <div class="form-group">
+                    <label for="ipv4gw">IPv4 gateway</label>
+                    <input class="form-control" pattern="{{ regex.ipv4gw }}" type="text" id="ipv4gw" name="ipv4gw" value="{{ settings.ipv4gw }}" placeholder="Undefined">
+                </div>
+
+                <div class="form-group">
+                    <label for="ipv6">IPv6 address</label>
+                    <input class="form-control" pattern="{{ regex.ipv6 }}" type="text" id="ipv6" name="ipv6" value="{{ settings.ipv6 }}" placeholder="Undefined">
+                </div>
+
+                <div class="form-group">
+                    <label for="ipv6gw">IPv6 gateway</label>
+                    <input class="form-control" pattern="{{ regex.ipv6gw }}" type="text" id="ipv6gw" name="ipv6gw" value="{{ settings.ipv6gw }}" placeholder="Undefined">
+                </div>
+
+                <div class="form-group">
+                    <label for="script_up">Network script up</label>
+                    <input class="form-control" pattern="{{ regex.script_up }}" type="text" id="script_up" name="script_up" value="{{ settings.script_up }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="script_down">Network script down</label>
+                    <input class="form-control" pattern="{{ regex.script_down }}" type="text" id="script_down" name="script_down" value="{{ settings.script_down }}">
+                </div>
+            </div>
             </div>
         </div>
-
-        <div class="control-group">
-            <label class="control-label" for="start_delay">Delay at boot time</label>
-            <div class="controls">
-                <input pattern="{{ regex.start_delay }}" type="number" id="start_delay" name="start_delay" value="{{ settings.start_delay }}" placeholder="Undefined">
+        <div class="tab-pane fade" id="resources" role="tabpanel" aria-labelledby="resources-tab">
+            <div class="card">
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="memlimit">Memory limit *</label>
+                        <input class="form-control fix-height" pattern="[0-9]+" type="range" id="memlimit" name="memlimit" min="16" max="{{ host_memory.total }}" value="{% if settings.memlimit %}{{ settings.memlimit }}{% else %}{{ host_memory.total }}{% endif %}" onChange="updateMemInput('inputMemlimit', this.value, {{ host_memory.total }});">
+                        <label><input pattern="[0-9]+" class="input-mini{% if not settings.memlimit %} hide{% endif %} form-control" id="inputMemlimit" type="number" min="16" max="{{ host_memory.total }}" value="{% if settings.memlimit %}{{ settings.memlimit }}{% endif %}" onChange="updateMemSlider('memlimit', this.value);"><span class="help-inline fix-height">{% if settings.memlimit %}MB{% else %}Unlimited{% endif %}</span></label>
+                    </div>
+                    <div class="form-group">
+                        <label for="sliderSwlimit">Memory + Swap limit *</label>
+                        <input class="form-control fix-height" pattern="[0-9]+" type="range" id="sliderSwlimit" name="swlimit" min="32" max="{{ host_memory.total * 2 }}" value="{% if settings.swlimit %}{{ settings.swlimit }}{% else %}{{ host_memory.total * 2 }}{% endif %}" onChange="updateMemInput('inputSwlimit', this.value, {{ host_memory.total * 2 }});">
+                        <label><input pattern="[0-9]+" class="input-mini{% if not settings.swlimit %} hide{% endif %} form-control" id="inputSwlimit" type="number" min="32" max="{{ host_memory.total *2 }}" value="{% if settings.swlimit %}{{ settings.swlimit }}{% endif %}" onChange="updateMemSlider('sliderSwlimit', this.value);"><span class="help-inline fix-height">{% if settings.swlimit %}MB{% else %}Unlimited{% endif %}</span></label>
+                    </div>
+                    <div class="form-group">
+                        <label for="inputCPUs">CPUs **</label>
+                        <input class="form-control" pattern="{{ regex.cpus }}" type="text" id="inputCPUs" name="cpus" value="{{ settings.cpus }}" placeholder="All">
+                        <span class="help-inline"><small>(e.g 0 or 0-1,3 or 0,3)</small></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="inputCPUShares">CPU Shares **</label>
+                        <input class="form-control" pattern="{{ regex.shares }}" type="number" id="inputCPUShares" name="shares" min="16" step="2" value="{{ settings.shares }}" placeholder="1024">
+                    </div>
+                    <div class="form-group">
+                        <label for="inputRootfs">Root FS</label>
+                        <input class="form-control" pattern="{{ regex.rootfs }}" type="text" id="inputRootfs" name="rootfs" value="{{ settings.rootfs }}">
+                        <span class="help-inline"><small>(e.g /var/lib/lxc/{{container}}/rootfs)</small></span>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <div class="control-group">
-            <label class="control-label" for="start_order">Start order</label>
-            <div class="controls">
-                <input pattern="{{ regex.start_order }}" type="number" id="start_order" name="start_order" value="{{ settings.start_order }}" placeholder="Undefined">
+        <div class="tab-pane fade" id="logging" role="tabpanel" aria-labelledby="logging-tab">
+            <div class="card">
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="loglevel">Log level</label>
+                        <select class="form-control" type="text" id="loglevel" name="loglevel" value="{{ settings.loglevel }}">
+                            <option value="0">trace</option>
+                            <option value="1">debug</option>
+                            <option value="2">info</option>
+                            <option value="3">notice</option>
+                            <option value="4">warn</option>
+                            <option value="5">error</option>
+                            <option value="6">critical</option>
+                            <option value="7">alert</option>
+                            <option value="8">fatal</option>
+                        </select>
+                        <span class="help-inline"><small>Default log level: 5 - error</small></span>
+                    </div>
+                    <div class="form-group">
+                        <label for="logfile">Log file</label>
+                        <input class="form-control" type="text" pattern="{{ regex.logfile }}" id="logfile" name="logfile" value="{{ settings.logfile }}">
+                        <span class="help-inline"><small></small></span>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <hr>
-
-        <div class="control-group switch-network-flags">
-            <label class="control-label" for="flags">Network flag</label>
-            <div class="controls">
-                <input type="checkbox" id="flags" name="flags" value="{{ settings.flags }}"{% if settings.flags == 'up' %} checked{% endif %}/>
+        <div class="tab-pane fade" id="snapshots" role="tabpanel" aria-labelledby="snapshots-tab">
+            <div class="card">
+                <div class="card-body">
+                    <table class="table">
+                        <tbody>
+                            {% for snap in snapshots %}
+                            <tr>
+                                <td><h5>{{snap.name}}</h5></td>
+                                <td>{{snap.size}}</td>
+                                <td>{{snap.date}}</td>
+                                <td>...</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-
-        <div id="network"{% if not settings.flags %} class="hide"{% endif %}>
-        <div class="control-group">
-            <label class="control-label" for="type">Network type</label>
-            <div class="controls">
-                <select pattern="{{ regex.type }}" type="text" id="type" name="type" value="{{ settings.type }}">
-                    <option value="empty" {% if settings.type == "empty" %}selected{% endif %}>empty</option>
-                    <option value="veth" {% if settings.type == "veth" %}selected{% endif %}>veth</option>
-                    <option value="vlan" {% if settings.type == "vlan" %}selected{% endif %}>vlan</option>
-                    <option value="macvlan" {% if settings.type == "macvlan" %}selected{% endif %}>macvlan</option>
-                    <option value="phys" {% if settings.type == "phys" %}selected{% endif %}>phys</option>top
-                </select>
+        <div class="tab-pane fade" id="misc" role="tabpanel" aria-labelledby="misc-tab">
+            <div class="card">
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="bucket">Bucket token</label>
+                        <input class="form-control" pattern="[a-zA-Z0-9_/\-]{32}" type="text" id="bucket" name="bucket" value="{{ settings.bucket }}">
+                        <span class="help-inline"><small>md5 like token of the backup bucket</small></span>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <div class="control-group">
-            <label class="control-label" for="link">Network link</label>
-            <div class="controls">
-                <input pattern="{{ regex.link }}" type="text" id="link" name="link" value="{{ settings.link }}" placeholder="Undefined">
-            </div>
-        </div>
-
-        <div class="control-group">
-            <label class="control-label" for="hwaddr">HW address</label>
-            <div class="controls">
-                <input pattern="{{ regex.hwaddr }}" type="text" id="hwaddr" name="hwaddr" value="{{ settings.hwaddr }}" placeholder="Undefined">
-            </div>
-        </div>
-
-        <div class="control-group">
-            <label class="control-label" for="ipv4">IPv4 address</label>
-            <div class="controls">
-                <input pattern="{{ regex.ipv4 }}"
-                       type="text" id="ipv4" name="ipv4" value="{{ settings.ipv4 }}" placeholder="Undefined">
-            </div>
-        </div>
-
-        <div class="control-group">
-            <label class="control-label" for="ipv4gw">IPv4 gateway</label>
-            <div class="controls">
-                <input pattern="{{ regex.ipv4gw }}"
-                       type="text" id="ipv4gw" name="ipv4gw" value="{{ settings.ipv4gw }}" placeholder="Undefined">
-            </div>
-        </div>
-
-        <div class="control-group">
-            <label class="control-label" for="ipv6">IPv6 address</label>
-            <div class="controls">
-                <input pattern="{{ regex.ipv6 }}" type="text" id="ipv6" name="ipv6" value="{{ settings.ipv6 }}" placeholder="Undefined">
-            </div>
-        </div>
-
-        <div class="control-group">
-            <label class="control-label" for="ipv6gw">IPv6 gateway</label>
-            <div class="controls">
-                <input pattern="{{ regex.ipv6gw }}" type="text" id="ipv6gw" name="ipv6gw" value="{{ settings.ipv6gw }}" placeholder="Undefined">
-            </div>
-        </div>
-
-        <div class="control-group">
-            <label class="control-label" for="script_up">Network script up</label>
-            <div class="controls">
-                <input pattern="{{ regex.script_up }}" type="text" id="script_up" name="script_up" value="{{ settings.script_up }}">
-            </div>
-        </div>
-
-        <div class="control-group">
-            <label class="control-label" for="script_down">Network script down</label>
-            <div class="controls">
-                <input pattern="{{ regex.script_down }}" type="text" id="script_down" name="script_down" value="{{ settings.script_down }}">
-            </div>
-        </div>
-
-</div>
-
-<hr>
-
-<div class="control-group form-inline">
-    <label class="control-label" for="memlimit">Memory limit *</label>
-    <div class="controls">
-        <input class="fix-height" pattern="[0-9]+" type="range" id="memlimit" name="memlimit" min="16" max="{{ host_memory.total }}" value="{% if settings.memlimit %}{{ settings.memlimit }}{% else %}{{ host_memory.total }}{% endif %}" onChange="updateMemInput('inputMemlimit', this.value, {{ host_memory.total }});">
-        <input pattern="[0-9]+" class="input-mini{% if not settings.memlimit %} hide{% endif %}" id="inputMemlimit" type="number" min="16" max="{{ host_memory.total }}" value="{% if settings.memlimit %}{{ settings.memlimit }}{% endif %}" onChange="updateMemSlider('memlimit', this.value);"><span class="help-inline fix-height">{% if settings.memlimit %}MB{% else %}Unlimited{% endif %}</span>
     </div>
-</div>
 
-<div class="control-group">
-    <label class="control-label" for="sliderSwlimit">Memory + Swap limit *</label>
-    <div class="controls">
-        <input class="fix-height" pattern="[0-9]+" type="range" id="sliderSwlimit" name="swlimit" min="32" max="{{ host_memory.total * 2 }}" value="{% if settings.swlimit %}{{ settings.swlimit }}{% else %}{{ host_memory.total * 2 }}{% endif %}" onChange="updateMemInput('inputSwlimit', this.value, {{ host_memory.total * 2 }});">
-        <input pattern="[0-9]+" class="input-mini{% if not settings.swlimit %} hide{% endif %}" id="inputSwlimit" type="number" min="32" max="{{ host_memory.total *2 }}" value="{% if settings.swlimit %}{{ settings.swlimit }}{% endif %}" onChange="updateMemSlider('sliderSwlimit', this.value);"><span class="help-inline fix-height">{% if settings.swlimit %}MB{% else %}Unlimited{% endif %}</span>
-    </div>
-</div>
-
-<div class="control-group">
-    <label class="control-label" for="inputCPUs">CPUs **</label>
-    <div class="controls">
-        <input pattern="{{ regex.cpus }}" type="text" id="inputCPUs" name="cpus" value="{{ settings.cpus }}" placeholder="All">
-        <span class="help-inline"><small>(e.g 0 or 0-1,3 or 0,3)</small></span>
-    </div>
-</div>
-
-<div class="control-group">
-    <label class="control-label" for="inputCPUShares">CPU Shares **</label>
-    <div class="controls">
-        <input pattern="{{ regex.shares }}" type="number" id="inputCPUShares" name="shares" min="16" step="2" value="{{ settings.shares }}" placeholder="1024">
-    </div>
-</div>
-
-<hr>
-
-<div class="control-group">
-    <label class="control-label" for="inputRootfs">Root FS</label>
-    <div class="controls">
-        <input pattern="{{ regex.rootfs }}" type="text" id="inputRootfs" name="rootfs" value="{{ settings.rootfs }}">
-        <span class="help-inline"><small>(e.g /var/lib/lxc/{{container}}/rootfs)</small></span>
-    </div>
-</div>
-
-<hr>
-
-<div class="control-group">
-    <label class="control-label" for="loglevel">Log level</label>
-    <div class="controls">
-        <select type="text" id="loglevel" name="loglevel" value="{{ settings.loglevel }}">
-            <option value="0">trace</option>
-            <option value="1">debug</option>
-            <option value="2">info</option>
-            <option value="3">notice</option>
-            <option value="4">warn</option>
-            <option value="5">error</option>
-            <option value="6">critical</option>
-            <option value="7">alert</option>
-            <option value="8">fatal</option>
-        </select>
-        <span class="help-inline"><small>Default log level: 5 - error</small></span>
-    </div>
-</div>
-
-<div class="control-group">
-    <label class="control-label" for="logfile">Log file</label>
-    <div class="controls">
-        <input type="text" pattern="{{ regex.logfile }}" id="logfile" name="logfile" value="{{ settings.logfile }}">
-        <span class="help-inline"><small></small></span>
-    </div>
-</div>
-
-<hr>
-<div class="control-group">
-    <label class="control-label" for="bucket">Bucket token</label>
-    <div class="controls">
-        <input pattern="[a-zA-Z0-9_/\-]{32}" type="text" id="bucket" name="bucket" value="{{ settings.bucket }}">
-        <span class="help-inline"><small>md5 like token of the backup bucket</small></span>
-    </div>
-</div>
-
-<div class="control-group">
-    <div class="controls">
-        <button class="btn btn-primary btn-success" name="submit" value="apply"><i class="icon-ok icon-white"></i> Apply</button>
-    </div>
+<div class="form-group">
+   <button class="btn btn-primary btn-lg" name="submit" value="apply"><i class="icon-ok icon-white"></i> Apply</button>
 </div>
 
 <p class="muted"><small>* Set to max to unset (unlimited)<br />** Leave empty to unset</small></p>
 </form>
 
 
-</div>
-<div class="span3 visible-desktop">
-    <ul class="nav nav-list">{% set span = {'RUNNING':'success','FROZEN':'info','STOPPED':'important'} %}
-        <li class="nav-header">Infos</li>
-        <li><strong>Status :</strong> <span class="label label-{{ span[infos.status] }}">{{ infos.status|capitalize }}</span></li>
-        {% if infos.status != 'STOPPED' %}<li><strong>Pid :</strong> {{ infos.pid }}</li>
-        <li><strong>Network :</strong> {% if settings.flags == 'up' %}<span class="label label-success">Up</span>{% else %}<span class="label label-important">Down</span>{% endif %}</li>
-        {% if infos.memusg %}<li id="{{ container }}"><strong>Mem. usage :</strong> {{ render_memory_wrapper(infos.memusg) }}</li>{% endif %}{% endif %}
-        <li><strong>Arch :</strong> {{ settings.arch }}</li>
-        {% if infos.status == "STOPPED" %}
-        <p style="padding-top: 10px;"><a class="btn btn-small btn-inverse" data-toggle="modal" data-target="#cloneCT"> <i class="icon-repeat icon-white"></i> Clone <abbr title="Container">CT</abbr></a></p>
-        {% endif %}
-        {% if storage_repos %}
-        <p style="padding-top: 10px;"><a class="btn btn-small btn-primary" data-toggle="modal" data-target="#backupCT"> <i class="icon-hdd icon-white"></i> Backup <abbr title="Container">CT</abbr></a></p>
-        {% endif %}
-    </ul>
-</div>
+
 {% include "includes/modal_clone.html" %}
 {% include "includes/modal_backup.html" %}
 {% endblock %}
