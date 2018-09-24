@@ -1,8 +1,10 @@
-LXC-Web-Panel
-=============
+LXC-Web-Panel reloaded
+==========================
 
-.. image:: https://travis-ci.org/claudyus/LXC-Web-Panel.svg?branch=master
-    :target: https://travis-ci.org/claudyus/LXC-Web-Panel
+.. image:: https://travis-ci.org/EstudioNexos/LXC-Web-Panel.svg?branch=master
+    :target: https://travis-ci.org/EstudioNexos/LXC-Web-Panel
+
+![Revamped dashboard](screenshots/dashboard.png "Revamped dashboard")
 
 This is a fork of the original LXC-Web-Panel from https://github.com/lxc-webpanel/LXC-Web-Panel and https://github.com/claudyus/LXC-Web-Panel/ looking for LXC 2.x compatibility, UI updating, New features like snapshots and backup restore management, and Fabric (fabfile) integration to be able to manage remote hosts.
 
