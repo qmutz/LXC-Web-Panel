@@ -4,8 +4,11 @@ LXC-Web-Panel reloaded
 .. image:: https://travis-ci.org/EstudioNexos/LXC-Web-Panel.svg?branch=master
     :target: https://travis-ci.org/EstudioNexos/LXC-Web-Panel
 
-![Revamped dashboard](screenshots/dashboard.png "Revamped dashboard")
-
+.. image:: https://github.com/EstudioNexos/LXC-Web-Panel/raw/master/screenshots/dashboard.png
+  :width: 400
+  :alt: Revamped dashboard
+  
+ 
 This is a fork of the original LXC-Web-Panel from https://github.com/lxc-webpanel/LXC-Web-Panel and https://github.com/claudyus/LXC-Web-Panel/ looking for LXC 2.x compatibility, UI updating, New features like snapshots and backup restore management, and Fabric (fabfile) integration to be able to manage remote hosts.
 
 Some features from Claudyus may fell off like Filebucket backups (not updated since 2015), probably LDAP integration (as we have no means to test it), and some more.
