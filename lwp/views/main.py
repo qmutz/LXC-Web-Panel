@@ -71,7 +71,11 @@ def about():
     """
     return render_template('about.html', containers=lxc.ls(), version=lwp.check_version(), dist=lwp.name_distro(), host=socket.gethostname())
 
-
+def decodenorm(value):
+    if isinstance(value, bytes):
+        return value.decode('utf-8')
+    return value
+    
 @mod.route('/<container>/edit', methods=['POST', 'GET'])
 @if_logged_in()
 def edit(container=None):
@@ -80,8 +84,7 @@ def edit(container=None):
     """
     host_memory = lwp.host_memory_usage()
     info = lxc.info(container)
-    cfg = lwp.get_container_settings(container,info['state'])
-    print(cfg)
+    cfg = lwp.get_container_settings(container,info[b'state'])
     if request.method == 'POST':
         form = request.form.copy()
 
@@ -105,7 +108,7 @@ def edit(container=None):
             if option in cfg.keys() and form[option] != cfg[option]:
                 # validate value with regex
                 if re.match(cgroup_ext[option][1], form[option]):
-                    lwp.push_config_value(cgroup_ext[option][0], form[option], container=container)
+                    lwp.push_config_value(cgroup_ext[option][0], form[option].encode('utf-8'), container=container)
                     flash(cgroup_ext[option][2], 'success')
                 else:
                     flash('Cannot validate value for option {}. Unsaved!'.format(option), 'error')
@@ -113,31 +116,17 @@ def edit(container=None):
         # we should re-read container configuration now to be coherent with the newly saved values
         cfg = lwp.get_container_settings(container)
 
-    info = lxc.info(container)
+    raw_info = lxc.info(container)
+    info = {}
+    for key, value in raw_info.items():
+        info[decodenorm(key)] = decodenorm(value)
     infos = {'status': info['state'], 'pid': info['pid'], 'memusg': lwp.memory_usage(container)}
-
+    
     # prepare a regex dict from cgroups_ext definition
     regex = {}
     for k, v in cgroup_ext.items():
         regex[k] = v[1]
-    """
-    Name:           els2
-    State:          RUNNING
-    PID:            15099
-    IP:             10.0.3.88
-    CPU use:        552.17 seconds
-    BlkIO use:      64.01 MiB
-    Memory use:     284.38 MiB
-    KMem use:       16.91 MiB
-    Link:           vethXRQ9IG
-     TX bytes:      2.14 MiB
-     RX bytes:      151.57 KiB
-     Total bytes:   2.29 MiB
-     ['blkio_use', 'name', 'rx_bytes', 'ip', 'kmem_use', 'pid', 'memory_use', 'state', 'link', 'cpu_use', 'tx_bytes', 'total_bytes']
 
-
-    """
-    print(info.keys())
     snapshots = lxc.snapshots(container)
     return render_template('edit.html', all_info=info, snapshots=lxc.snapshots(container), containers=lxc.ls(), container=container, infos=infos,
                            settings=cfg, host_memory=host_memory, storage_repos=storage_repos, regex=regex,
