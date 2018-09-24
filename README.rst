@@ -31,21 +31,20 @@ All contributions are welcomed.
   :width: 300
   :alt: Container snapshots
 
-Installation on rpm system or from source code
+Installation from source code
 ----------------------------------------------
 
-If you want to run lwp from source code or in a rpm based system like Fedora you can follow the steps below.
-
-On a fedora system you should install these deps.
+If you want to run lwp from source code:
 
 ::
-
-  sudo yum update
-  sudo yum install lxc lxc-devel lxc-libs lxc-extra lxc-templates python-pam python-flask fabric pytz npm
-
-Now you should download the source code and inside the source code directory run these steps below
-
-::
+  mkdir gantry && cd gantry
+  python3 -m venv gantryenv
+  source gantryenv/bin/activate
+  git clone https://github.com/EstudioNexos/LXC-Web-Panel.git
+  cd LXC-Web-Panel
+  pip install cryptography # installing pyopenssl fails if cryptography is not already installed
+  python setup.py install
+  cp lwp.example.conf /etc/lwp/lwp.conf
 
   fab build_assets         # build assets using python-fabric
   ./setup.py develop       # install python package
