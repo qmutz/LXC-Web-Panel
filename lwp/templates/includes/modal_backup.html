@@ -1,7 +1,7 @@
 <div id="backupCT{{container_name}}" class="modal" tabindex="-1" role="dialog" aria-labelledby="cloneCTLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
-    <form method="post" action="{{ url_for('main.backup_container') }}" style="margin:0;">
+    <form method="post" action="{{ url_for('main.backup_container') }}">
         <div class="modal-header">
             <h3 id="cloneCTLabel">{% if container_name %}Backup {{container_name}}{% else %}Choose container to backup{% endif %}</h3>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>

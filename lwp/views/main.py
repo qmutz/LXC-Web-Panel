@@ -117,11 +117,7 @@ def edit(container=None):
         cfg = lwp.get_container_settings(container)
 
         info = lxc.info(container)
-    #~ info = {}
-    #~ for key, value in raw_info.items():
-        #~ info[decodenorm(key)] = decodenorm(value)
     infos = {'status': info['state'], 'pid': info['pid'], 'memusg': lwp.memory_usage(container)}
-    
     # prepare a regex dict from cgroups_ext definition
     regex = {}
     for k, v in cgroup_ext.items():
@@ -523,6 +519,49 @@ def create_container():
     return redirect(url_for('main.home'))
 
 
+@mod.route('/action/snapshot-container', methods=['GET', 'POST'])
+@if_logged_in()
+def snapshot_container():
+    """
+    verify all forms to copy a container
+    """
+    
+    operation_message = False
+    if session['su'] != 'Yes':
+        return abort(403)
+    if request.method == 'POST':
+        name = request.form['name']
+        delete_snapshot = request.form.get('delete_snapshot', False)
+        restore_snapshot = request.form.get('restore_snapshot', False)
+        if delete_snapshot:
+            restore_snapshot = False
+        if re.match('^(?!^containers$)|[a-zA-Z0-9_-]+$', name):
+            out = None
+
+            try:
+                out = lxc.snapshot(name,delete_snapshot=delete_snapshot,restore_snapshot=restore_snapshot)
+            except lxc.SnapshotError:
+                operation_message = u'Error with snapshot for {}!'.format(name)
+                flash(operation_message, 'error')
+                
+            if out and out == 0:
+                operation_message = u'Operation on snapshot for container {}'.format(name)
+                flash(operation_message, 'success')
+            elif out and out != 0:
+                operation_message = u'Failed operation snapshot for {}!'.format(name)
+                flash(operation_message, 'error')
+
+        else:
+            if name == '':
+                flash(u'Please enter a container name!', 'error')
+            else:
+                flash(u'Invalid name for \"%s\"!' % name, 'error')
+    
+    #~ return redirect(url_for('main.edit', container=name))
+    snapshots = lxc.snapshots(name)
+    return render_template('snapshots.html', container=name, snapshots=snapshots, operation_message=operation_message)
+
+    
 @mod.route('/action/copy-container', methods=['GET', 'POST'])
 @if_logged_in()
 def copy_container():
@@ -534,23 +573,15 @@ def copy_container():
     if request.method == 'POST':
         orig = request.form['orig']
         name = request.form['name']
-
-        try:
-            snapshot = request.form['snapshot']
-            if snapshot == 'True':
-                snapshot = True
-        except KeyError:
-            snapshot = False
-
         if re.match('^(?!^containers$)|[a-zA-Z0-9_-]+$', name):
             out = None
 
             try:
-                out = lxc.copy(orig=orig, new=name, snapshot=snapshot)
+                out = lxc.copy(orig=orig, new=name)
             except lxc.ContainerAlreadyExists:
                 flash(u'The Container %s already exists!' % name, 'error')
             except subprocess.CalledProcessError:
-                flash(u'Can\'t snapshot a directory', 'error')
+                flash(u'Can\'t copy a directory', 'error')
 
             if out and out == 0:
                 flash(u'Container %s copy into %s successfully!' % (orig, name), 'success')

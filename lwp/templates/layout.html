@@ -32,16 +32,7 @@
             </div>
             <div class="col-lg-8 offset-lg-1">
             {% block content %}
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            {% for category, message in messages %}
-            <div class="alert alert-dismissible alert-{{ category }}">
-                <button type="button" class="close" data-dismiss="alert">&times;</button>
-                {{ message }}
-            </div>
-            {% endfor %}
-            {% endif %}
-            {% endwith %}
+            {% include "includes/flash_messages.html" %}
             {% endblock %}
             </div>
         </div>
@@ -61,7 +52,10 @@
 <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/popper.min.js') }}"></script>
 <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+<!--
 <script src="{{ url_for('static', filename='js/jqBootstrapValidation.js') }}"></script>
+-->
+<script src="https://intercoolerreleases-leaddynocom.netdna-ssl.com/intercooler-1.2.1.min.js"></script>
 <script>
     $(function() {
         $(".alert").not('.dont-hide').alert().delay(5000).slideUp();

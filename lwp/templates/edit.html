@@ -9,7 +9,6 @@
     <div class="card-body">
         <div class="row">
             <div class="col-lg-12">
-                <label for="utsname">Hostname</label>
                 <h3 class="head">
                     {% if infos['status']== 'RUNNING' %}
                         <i class="fa fa-circle text-success" aria-hidden="true"></i>&nbsp;
@@ -18,7 +17,7 @@
                     {% else %}
                         <i class="fa fa-circle-thin text-danger" aria-hidden="true"></i>&nbsp;
                     {% endif %}
-                    {{ settings.utsname }}
+                    {{container}} &bull; {{ settings.utsname }}
                 &nbsp;{% if settings.ipv4  %}{{settings.ipv4}}{% endif %}
                 {% if settings.flags == 'up' %}<span class="badge badge-success">Up</span>{% else %}<span class="badge badge-error">Down</span>{% endif %}
                 
@@ -51,10 +50,10 @@
                         {% endif %}
                     </li>
                     {% if infos.status == "STOPPED" %}
-                        <li><a class="btn btn-outline-primary" data-toggle="modal" data-target="#cloneCT"> <i class="icon-repeat icon-white"></i> Clone <abbr title="Container">CT</abbr></a></li>
+                        <li><a class="btn btn-outline-primary" data-toggle="modal" data-target="#copyCT{{container}}">Copy</a></li>
                     {% endif %}
                     {% if storage_repos %}
-                        <li><a class="btn btn-outline-info" data-toggle="modal" data-target="#backupCT"> <i class="icon-hdd icon-white"></i> Backup <abbr title="Container">CT</abbr></a></li>
+                        <li><a class="btn btn-outline-info" data-toggle="modal" data-target="#backupCT{{container}}">Create Backup</a></li>
                     {% endif %}
                 </ul>
                 <hr>
@@ -112,9 +111,11 @@
       <li class="nav-item">
         <a class="nav-link" id="snapshots-tab" data-toggle="tab" href="#snapshots" role="tab" aria-controls="snapshots" aria-selected="false">Snapshots</a>
       </li>
+      {#
       <li class="nav-item">
         <a class="nav-link" id="misc-tab" data-toggle="tab" href="#misc" role="tab" aria-controls="misc" aria-selected="false">Misc</a>
       </li>
+      #}
     </ul>
     <div class="tab-content" id="myTabContent">
         <div class="tab-pane fade show active" id="boot" role="tabpanel" aria-labelledby="boot-tab">
@@ -259,21 +260,13 @@
         <div class="tab-pane fade" id="snapshots" role="tabpanel" aria-labelledby="snapshots-tab">
             <div class="card">
                 <div class="card-body">
-                    <table class="table">
-                        <tbody>
-                            {% for snap in snapshots %}
-                            <tr>
-                                <td><h5>{{snap.name}}</h5></td>
-                                <td>{{snap.size}}</td>
-                                <td>{{snap.date}}</td>
-                                <td>...</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                    <input id="name-{{ container }}" name="name" value="{{ container }}" type="hidden">
+                    <button class="btn btn-outline-danger" ic-replace-target="true" ic-include="#name-{{ container }}" ic-target="#snapshots-table" ic-post-to="{{ url_for('main.snapshot_container') }}">Create snapshot</button>
+                    {% include 'snapshots.html' %}
                 </div>
             </div>
         </div>
+        {#
         <div class="tab-pane fade" id="misc" role="tabpanel" aria-labelledby="misc-tab">
             <div class="card">
                 <div class="card-body">
@@ -285,19 +278,20 @@
                 </div>
             </div>
         </div>
+        #}
     </div>
 
-<div class="form-group">
-   <button class="btn btn-primary btn-lg" name="submit" value="apply"><i class="icon-ok icon-white"></i> Apply</button>
-</div>
+    <p class="text-right">
+       <button class="btn btn-primary btn-lg" name="submit" value="apply"><i class="icon-ok icon-white"></i> Apply</button>
+    </p>
 
-<p class="muted"><small>* Set to max to unset (unlimited)<br />** Leave empty to unset</small></p>
+    <p class="muted"><small>* Set to max to unset (unlimited)<br />** Leave empty to unset</small></p>
 </form>
 
-
-
+{% with container_name=container %}
 {% include "includes/modal_clone.html" %}
 {% include "includes/modal_backup.html" %}
+{% endwith %}
 {% endblock %}
 
 {% macro memory_color(value) -%}{% if value != 0 %}{% if 0 <= value <= 511 %}success{% elif 512 <= value < 980 %}warning{% else %}important{% endif %}{% endif %}{%- endmacro %}

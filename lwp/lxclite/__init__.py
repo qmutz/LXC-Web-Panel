@@ -5,7 +5,7 @@ import os
 import time
 
 from lwp.exceptions import ContainerDoesntExists, ContainerAlreadyExists, ContainerAlreadyRunning, ContainerNotRunning,\
-    DirectoryDoesntExists, NFSDirectoryNotMounted
+    DirectoryDoesntExists, NFSDirectoryNotMounted, SnapshotError
 
 
 # LXC Python Library
@@ -97,14 +97,28 @@ def snapshots(container):
     if output and b'No snapshots' not in output:
         for val in output.splitlines():
             splitted = val.split()
-            snap = {'name':splitted[0].decode('utf-8'),'date':'{} {}'.format(splitted[-2],splitted[-1]),'path':splitted[1][1:-1].decode('utf-8')}
+            snap = {'name':splitted[0].decode('utf-8'),'date':'{} {}'.format(splitted[-2].decode('utf-8'),splitted[-1].decode('utf-8')),'path':splitted[1][1:-1].decode('utf-8')}
             
             if os.path.exists(os.path.join(snap['path'],snap['name'])):
                 size = _run('du -sh {}/{}'.format(snap['path'],snap['name']), output=True)
                 if size:
-                    snap['size'] = size.splitlines()[0].split('\t')[0].decode('utf-8')
+                    snap['size'] = size.splitlines()[0].split(b'\t')[0].decode('utf-8')
             sn_list.append(snap)
     return sn_list
+    
+def snapshot(container, delete_snapshot=False, restore_snapshot=False):
+    """
+    Create container snapshot
+    """
+    if not exists(container):
+        raise ContainerDoesntExists('Container {} does not exist!'.format(container))
+    if delete_snapshot:
+        command = 'lxc-snapshot -n {} -d {}'.format(container, delete_snapshot)
+    elif restore_snapshot:
+        command = 'lxc-snapshot -n {} -r {}'.format(container, restore_snapshot)
+    else:
+        command = 'lxc-snapshot -n {}'.format(container)
+    return _run(command)
 
 def lxcdir():
     return _run('lxc-config lxc.lxcpath', output=True).strip().decode('utf-8')

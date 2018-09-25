@@ -8,6 +8,9 @@ class ContainerNotExists(Exception):
 
 class ContainerAlreadyExists(Exception):
     pass
+    
+class SnapshotError(Exception):
+    pass
 
 
 class ContainerDoesntExists(Exception):
