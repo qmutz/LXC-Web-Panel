@@ -1,0 +1,26 @@
+{#
+{% if operation_message %}
+{{operation_message}}
+{% endif %}
+{% if operation_message %}<tr><td colspan="4">{{operation_message}}</td></tr>{% endif %}
+#}
+<table class="table" id="snapshots-table">
+    <tbody>
+        {% for snap in snapshots %}
+        <tr>
+            <td><h5>{{snap.name}}</h5></td>
+            <td>{{snap.size}}</td>
+            <td>{{snap.date}}</td>
+            <td>
+                
+<!--
+                <input id="name-{{snap.name}}" name="name-{{snap.name}}" value="{{ container }}" type="hidden"> 
+-->
+                <input id="delete_snapshot-{{snap.name}}" name="delete_snapshot" value="{{ snap.name }}" type="hidden">
+                <button class="btn btn-outline-danger" ic-replace-target="true" ic-include="#delete_snapshot-{{snap.name}}"  ic-target="#snapshots-table" ic-post-to="{{ url_for('main.snapshot_container') }}">Delete</button>
+                
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
