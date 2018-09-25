@@ -1,5 +1,3 @@
-DONT USE UNTIL issue #2 IS COMPLETED
-
 LXC-Web-Panel reloaded
 ==========================
 
@@ -11,7 +9,7 @@ LXC-Web-Panel reloaded
   :alt: Revamped dashboard
   
  
-This is a fork of the original LXC-Web-Panel from https://github.com/lxc-webpanel/LXC-Web-Panel and https://github.com/claudyus/LXC-Web-Panel/ looking for LXC 2.x compatibility, UI updating, New features like snapshots and backup restore management, and Fabric (fabfile) integration to be able to manage remote hosts.
+This is a fork of the original LXC-Web-Panel from https://github.com/lxc-webpanel/LXC-Web-Panel and https://github.com/claudyus/LXC-Web-Panel/ looking for LXC 2.x compatibility, Python 3, UI updating, New features like snapshots and backup restore management, and Fabric (fabfile) integration to be able to manage remote hosts.
 
 Some features from Claudyus may fell off like Filebucket backups (not updated since 2015), probably LDAP integration (as we have no means to test it), and some more.
 
@@ -39,6 +37,7 @@ Installation from source code
 If you want to run lwp from source code:
 
 ::
+
   mkdir gantry && cd gantry
   python3 -m venv gantryenv
   source gantryenv/bin/activate
@@ -51,6 +50,13 @@ If you want to run lwp from source code:
   cp lwp.db /var/lwp/lwp.db
   ./bin/lwp --debug        # run lwp wth debug support
 
+We need also a backup directory:
+
+::
+
+  mkdir /var/lxc-backups
+  
+We recomend using /var/backups/lxc path, change appropiate settings in lwp.conf
 
 Configuration
 -------------
