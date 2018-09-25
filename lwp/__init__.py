@@ -1,7 +1,8 @@
 from __future__ import absolute_import, print_function, division
 
 from io import StringIO, BytesIO
-import os
+import os, sys
+
 import re
 import time
 import platform
@@ -16,11 +17,11 @@ SESSION_SECRET_FILE = '/etc/lwp/session_secret'
 
 class NormalizeConfig(object):
     def __init__(self, fp):
-        self.fp = open(fp,'br')
-        self.sechead = b'[DEFAULT]\n'
+        self.fp = open(fp,'r')
+        self.sechead = '[DEFAULT]\n'
         
     def read(self):
-        config = BytesIO()
+        config = StringIO()
         config.write(self.sechead)
         config.write(self.fp.read())
         config.seek(0, os.SEEK_SET)
@@ -33,7 +34,7 @@ def del_section(filename=None):
             read = f.readlines()
         i = 0
         while i < len(read):
-            if b'[DEFAULT]' in read[i]:
+            if '[DEFAULT]' in read[i]:
                 del read[i]
                 break
         with open(filename, 'w') as f:
@@ -204,13 +205,13 @@ def get_net_settings():
     config.readfp(normalized)
     
     cfg = {
-        'use': config.get(b'DEFAULT', 'USE_LXC_BRIDGE').strip('"'),
-        'bridge': config.get(b'DEFAULT', 'LXC_BRIDGE').strip('"'),
-        'address': config.get(b'DEFAULT', 'LXC_ADDR').strip('"'),
-        'netmask': config.get(b'DEFAULT', 'LXC_NETMASK').strip('"'),
-        'network': config.get(b'DEFAULT', 'LXC_NETWORK').strip('"'),
-        'range': config.get(b'DEFAULT', 'LXC_DHCP_RANGE').strip('"'),
-        'max': config.get(b'DEFAULT', 'LXC_DHCP_MAX').strip('"')
+        'use': config.get('DEFAULT', 'USE_LXC_BRIDGE').strip('"'),
+        'bridge': config.get('DEFAULT', 'LXC_BRIDGE').strip('"'),
+        'address': config.get('DEFAULT', 'LXC_ADDR').strip('"'),
+        'netmask': config.get('DEFAULT', 'LXC_NETMASK').strip('"'),
+        'network': config.get('DEFAULT', 'LXC_NETWORK').strip('"'),
+        'range': config.get('DEFAULT', 'LXC_DHCP_RANGE').strip('"'),
+        'max': config.get('DEFAULT', 'LXC_DHCP_MAX').strip('"')
     }
 
     return cfg
@@ -230,14 +231,13 @@ def get_container_settings(name, status=None):
     cfg = {}
     # for each key in cgroup_ext add value to cfg dict and initialize values
     for options in cgroup_ext.keys():
-        if config.has_option(b'DEFAULT', cgroup_ext[options][0]):
-            print('yes')
-            cfg[options] = config.get(b'DEFAULT', cgroup_ext[options][0])
+        if config.has_option('DEFAULT', cgroup_ext[options][0]):
+            cfg[options] = config.get('DEFAULT', cgroup_ext[options][0])
         else:
             cfg[options] = ''  # add the key in dictionary anyway to match form
 
     # if ipv4 is unset try to determinate it
-    if cfg['ipv4'] == '' and status == b'RUNNING':
+    if cfg['ipv4'] == '' and status == 'RUNNING':
         cmd = ['lxc-ls --fancy --fancy-format name,ipv4|grep -w \'%s\' | awk \'{ print $2 }\'' % name]
         cfg['ipv4'] = subprocess.check_output(cmd, shell=True)
         try:
@@ -260,11 +260,11 @@ def push_net_value(key, value, filename='/etc/default/lxc-net'):
         config = RawConfigParser()
         config.readfp(normalized)
         if not value:
-            config.remove_option(b'DEFAULT', key)
+            config.remove_option('DEFAULT', key)
         else:
-            config.set(b'DEFAULT', key, value)
+            config.set('DEFAULT', key, value)
 
-        with open(filename, 'wb') as configfile:
+        with open(filename, 'w') as configfile:
             config.write(configfile)
 
         del_section(filename=filename)
@@ -318,23 +318,23 @@ def push_config_value(key, value, container=None):
         config = ConfigParser()
         config.readfp(normalized)
         if not value:
-            config.remove_option(b'DEFAULT', key)
+            config.remove_option('DEFAULT', key)
         elif key == cgroup_ext['memlimit'][0] or key == cgroup_ext['swlimit'][0] and value is not False:
-            config.set(b'DEFAULT', key, '%sM' % value)
+            config.set('DEFAULT', key, '%sM' % value)
         else:
-            config.set(b'DEFAULT', key, '%s' % value)
+            config.set('DEFAULT', key, '%s' % value)
 
         # Bugfix (can't duplicate keys with config parser)
-        if config.has_option(b'DEFAULT', cgroup_ext['deny'][0]):
-            config.remove_option(b'DEFAULT', cgroup_ext['deny'][0])
-        if config.has_option(b'DEFAULT', cgroup_ext['allow'][0]):
-            config.remove_option(b'DEFAULT', cgroup_ext['allow'][0])
-        if config.has_option(b'DEFAULT', 'lxc.cap.drop'):
-            config.remove_option(b'DEFAULT', 'lxc.cap.drop')
-        if config.has_option(b'DEFAULT', 'lxc.mount.entry'):
-            config.remove_option(b'DEFAULT', 'lxc.mount.entry')
+        if config.has_option('DEFAULT', cgroup_ext['deny'][0]):
+            config.remove_option('DEFAULT', cgroup_ext['deny'][0])
+        if config.has_option('DEFAULT', cgroup_ext['allow'][0]):
+            config.remove_option('DEFAULT', cgroup_ext['allow'][0])
+        if config.has_option('DEFAULT', 'lxc.cap.drop'):
+            config.remove_option('DEFAULT', 'lxc.cap.drop')
+        if config.has_option('DEFAULT', 'lxc.mount.entry'):
+            config.remove_option('DEFAULT', 'lxc.mount.entry')
 
-        with open(filename, 'wb') as configfile:
+        with open(filename, 'w') as configfile:
             config.write(configfile)
 
         del_section(filename=filename)

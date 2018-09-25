@@ -12,7 +12,7 @@ from lwp import SESSION_SECRET_FILE
 from lwp.views import main, auth, api
 
 try:
-    SECRET_KEY = open(SESSION_SECRET_FILE, 'r').read()
+    SECRET_KEY = open(SESSION_SECRET_FILE, 'br').read()
 except IOError:
     print(' * Missing session_secret file, your session will not survive server reboot. Run with --generate-session-secret to generate permanent file.')
     SECRET_KEY = os.urandom(24)

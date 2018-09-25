@@ -10,11 +10,9 @@
     </div>
     <div class="modal-footer">
         <div class="buttons-modal-footer">
-            <button class="btn btn-small" data-dismiss="modal" aria-hidden="true">Cancel</button>
+            {% include 'includes/modal_cancel_btn.html' %}
             <a class="btn btn-danger destroy-link modalbutton" href=""><i class="icon-trash icon-white"></i> Destroy</a>
         </div>
-        <div class="progress progress-striped active hide loader-modal-footer">
-            <div class="bar" style="width: 100%;"></div>
-        </div>
+        {% include 'includes/spinner.html' %}
     </div>
 </div>

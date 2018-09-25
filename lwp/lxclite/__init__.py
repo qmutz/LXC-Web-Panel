@@ -75,13 +75,14 @@ def info(container):
     """
     if not exists(container):
         raise ContainerDoesntExists('Container {} does not exist!'.format(container))
-
-    output = _run('lxc-info -qn {}'.format(container), output=True).splitlines()
-
-    state = {b'pid': 0}
-    for val in output:
-        state[val.split(b':')[0].lower().strip().replace(b" ", b"_")] = val.split(b':')[1].strip()
     
+    output = _run('lxc-info -qn {}'.format(container), output=True).splitlines()
+    
+    state = {'pid': 0}
+    for val in output:
+        key = val.split(b':')[0].lower().strip().replace(b" ", b"_")
+        value = val.split(b':')[1].strip()
+        state[key.decode('utf-8')] = value.decode('utf-8')
     return state
 
 def snapshots(container):
@@ -93,14 +94,15 @@ def snapshots(container):
 
     output = _run('lxc-snapshot -LCn {}'.format(container), output=True)
     sn_list = []
-    if output:
+    if output and b'No snapshots' not in output:
         for val in output.splitlines():
             splitted = val.split()
-            snap = {'name':splitted[0],'date':'{} {}'.format(splitted[-2],splitted[-1]),'path':splitted[1][1:-1]}
+            snap = {'name':splitted[0].decode('utf-8'),'date':'{} {}'.format(splitted[-2],splitted[-1]),'path':splitted[1][1:-1].decode('utf-8')}
+            
             if os.path.exists(os.path.join(snap['path'],snap['name'])):
                 size = _run('du -sh {}/{}'.format(snap['path'],snap['name']), output=True)
                 if size:
-                    snap['size'] = size.splitlines()[0].split('\t')[0]
+                    snap['size'] = size.splitlines()[0].split('\t')[0].decode('utf-8')
             sn_list.append(snap)
     return sn_list
 
@@ -241,8 +243,10 @@ def checkconfig():
     """
     out = _run('lxc-checkconfig', output=True)
     if out:
-        return out.replace('[1;32m', '').replace('[1;33m', '').replace('[0;39m', '').replace('[1;32m', '').replace('\x1b', '').replace(': ', ':').split('\n')
-    return out
+        rtr = out.replace(b'[1;32m', b'').replace(b'[1;33m', b'').replace(b'[0;39m', b'').replace(b'[1;32m', b'').replace(b'\x1b', b'').replace(b': ', b':').split(b'\n')
+        print(rtr)
+        return [x.decode('utf8') for x in rtr]
+    return out.decode('utf-8')
 
 
 def cgroup(container, key, value):

@@ -28,15 +28,10 @@
                     <input type="checkbox" name="snapshot" value="True" />
                 </div>
                 -->
-                <button class="btn btn-small" data-dismiss="modal" aria-hidden="true">Close</button>
-                <button type="submit" class="btn btn-primary modalbutton">Clone</button>
-                
+                {% include 'includes/modal_cancel_btn.html' %}
+                <button type="submit" class="btn btn-primary modalbutton">Copy</button>
             </div>
-            <div class="loader-modal-footer hide">
-                <div class="progress progress-striped active">
-                    <div class="bar" style="width: 100%;"></div>
-                </div>
-            </div>
+            {% include 'includes/spinner.html' %}
         </div>
     </form>
     </div>
