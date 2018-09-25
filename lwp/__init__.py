@@ -184,11 +184,14 @@ def check_version():
     """
     returns latest LWP version (dict with current)
     """
+    git_describe = ""
     try:
-        version = subprocess.check_output('git describe --tags', shell=True)
+        git_describe = subprocess.check_output('git describe --tags', shell=True).decode('utf-8')
     except subprocess.CalledProcessError:
-        version = open(os.path.join(os.path.dirname(__file__), 'version')).read()[0:-1]
-    return {'current': version}
+        pass
+    version = open(os.path.join(os.path.dirname(__file__), 'version')).read()[0:-1]
+    formatted_version = "{} {}".format(version,git_describe)
+    return {'current': formatted_version}
 
 
 def get_net_settings():
