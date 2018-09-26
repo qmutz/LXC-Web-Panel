@@ -8,6 +8,7 @@ LXC-Web-Panel is an easy to use Linux Containers manager.
 
 - Display some host and container information: IP, CPU, Mem and Disk usage.
 - List, create, delete containers and change container settings.
+- Start, stop and freeze containers
 - Create container backup to a tar.gz
 - List, create and delete snapshots
 - Show system compatibility
