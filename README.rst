@@ -4,6 +4,16 @@ LXC-Web-Panel reloaded
 .. image:: https://travis-ci.org/EstudioNexos/LXC-Web-Panel.svg?branch=master
     :target: https://travis-ci.org/EstudioNexos/LXC-Web-Panel
 
+LXC-Web-Panel is an easy to use Linux Containers manager.
+
+- Display some host and container information: IP, CPU, Mem and Disk usage.
+- List, create, delete containers and change container settings.
+- Create container backup to a tar.gz
+- List, create and delete snapshots
+- Show system compatibility
+- Manage panel users
+- Expose container operations through a REST API and Manage API authoritation tokens
+
 .. image:: https://github.com/EstudioNexos/LXC-Web-Panel/raw/master/screenshots/dashboard.png
   :width: 400
   :alt: Revamped dashboard
