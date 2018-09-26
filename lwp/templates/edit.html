@@ -26,8 +26,11 @@
                     <span class="btn btn-link btn-block">{{ infos['status'] }}
                     {% else %}
                     
-                    <a class="btn btn-block btn-primary{% if infos['status'] == 'RUNNING' %} disabled{% endif %}" {% if infos['status'] == 'STOPPED' or infos['status'] == 'FROZEN' %}href="{{ url_for('main.action', name=container, action=start_action[infos['status']], from='edit') }}"{% endif %}>
+                    <!--<a class="btn btn-block btn-primary{% if infos['status'] == 'RUNNING' %} disabled{% endif %}" {% if infos['status'] == 'STOPPED' or infos['status'] == 'FROZEN' %}href="{{ url_for('main.action', name=container, action=start_action[infos['status']], from='edit') }}"{% endif %}>
                         <i class="icon-play"></i> Start
+                    </a>-->
+                    <a id="start-container" class="btn btn-block btn-primary" ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content" {% if infos['status'] == 'STOPPED' or infos['status'] == 'FROZEN' %}ic-get-from="{{ url_for('main.action', name=container, action=start_action[infos['status']], from='edit') }}"{% endif %}>
+                        Start<i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
                     </a>
                     {% endif %}
                     {% if infos.status != 'STOPPED' %}<span class="badge"><strong>Pid :</strong> {{ infos.pid }}</span>{% endif %}
@@ -85,8 +88,12 @@
                 <div class="btn-toolbar">
                     <div class="btn-group">
 
-                        <a class="btn btn-primary{% if infos['status'] == 'STOPPED' %} disabled{% endif %}" {% if infos['status'] == 'RUNNING' or infos['status'] == 'FROZEN' %}href="{{ url_for('main.action', name=container, action='stop', from='edit') }}"{% endif %}><i class="icon-stop"></i> Stop</a>
-                        <a class="btn btn-primary{% if infos['status'] == 'FROZEN' or infos['status'] == 'STOPPED' %} disabled{% endif %}" {% if infos['status'] == 'RUNNING' %}href="{{ url_for('main.action', name=container, action='freeze', from='edit') }}"{% endif %}><i class="icon-pause"></i> Freeze</a>
+                        <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if infos['status'] == 'STOPPED' %} disabled{% endif %}" {% if infos['status'] == 'RUNNING' or infos['status'] == 'FROZEN' %}ic-get-from="{{ url_for('main.action', name=container, action='stop', from='edit') }}"{% endif %}>
+                            Stop <i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
+                        </a>
+                        <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if infos['status'] == 'FROZEN' or infos['status'] == 'STOPPED' %} disabled{% endif %}" {% if infos['status'] == 'RUNNING' %}ic-get-from="{{ url_for('main.action', name=container, action='freeze', from='edit') }}"{% endif %}>
+                            Freeze <i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -94,7 +101,7 @@
     </div>
 </div>
     
-    <form id="config" class="form-horizontal" action="{{ url_for('main.edit', container=container) }}" method="post">
+
     <ul class="nav nav-pills nav-fill" id="myTab" role="tablist">
       <li class="nav-item">
         <a class="nav-link active" id="boot-tab" data-toggle="tab" href="#boot" role="tab" aria-controls="home" aria-selected="true">Boot</a>
@@ -118,16 +125,23 @@
       #}
     </ul>
     <div class="tab-content" id="myTabContent">
+        {#
+            <form id="config" action="{{ url_for('main.edit', container=container) }}" method="post">
+        #}
         <div class="tab-pane fade show active" id="boot" role="tabpanel" aria-labelledby="boot-tab">
             <div class="card">
+                <form ic-post-to="{{ url_for('main.edit', container=container) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
                 <div class="card-body">
                     <div class="form-group">
                         <label for="utsname">Hostname</label>
                         <input class="form-control" pattern="{{ regex.utsname }}" type="text" id="utsname" name="utsname" value="{{ settings.utsname }}">
                     </div>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="start_auto" name="start_auto" value="{{ settings.start_auto }}" {% if settings.start_auto == '1' %} checked{% endif %}/>
-                        <label  class="form-check-label" for="start_auto">Start at boot</label>
+                        <label for="start_auto">Start at boot
+                            <input class="form-check-input" data-toggle="toggle" type="checkbox" id="start_auto" name="start_auto" value="{{ settings.start_auto }}" {% if settings.start_auto == '1' %} checked{% endif %}/>
+                        
+                            <span class="slider"></span>
+                        </label>
                     </div>
                     <div class="form-group">
                         <label for="start_delay">Delay at boot time</label>
@@ -138,71 +152,77 @@
                         <input class="form-control" pattern="{{ regex.start_order }}" type="number" id="start_order" name="start_order" value="{{ settings.start_order }}" placeholder="Undefined">
                     </div>
                 </div>
+                {% include 'includes/edit_apply_btn.html' %}
+                </form>
             </div>
         </div>
         <div class="tab-pane fade" id="network" role="tabpanel" aria-labelledby="network-tab">
             <div class="card">
+                <form ic-post-to="{{ url_for('main.edit', container=container) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
                 <div class="card-body">
-                <div class="form-check switch-network-flags">
-                    <input type="checkbox" class="form-check-input" id="flags" name="flags" value="{{ settings.flags }}"{% if settings.flags == 'up' %} checked{% endif %}/>
-                    <label class="form-check-label" for="flags">Network flag</label>
-                </div>
-                <div id="network"{% if not settings.flags %} class="hide"{% endif %}>
-                </div>
-                <div class="form-group">
-                    <label for="type">Network type</label>
-                    <select class="form-control" pattern="{{ regex.type }}" type="text" id="type" name="type" value="{{ settings.type }}">
-                        <option value="empty" {% if settings.type == "empty" %}selected{% endif %}>empty</option>
-                        <option value="veth" {% if settings.type == "veth" %}selected{% endif %}>veth</option>
-                        <option value="vlan" {% if settings.type == "vlan" %}selected{% endif %}>vlan</option>
-                        <option value="macvlan" {% if settings.type == "macvlan" %}selected{% endif %}>macvlan</option>
-                        <option value="phys" {% if settings.type == "phys" %}selected{% endif %}>phys</option>top
-                    </select>
-                </div>
+                    <div class="form-check switch-network-flags">
+                        <input type="checkbox" class="form-check-input" id="flags" name="flags" value="{{ settings.flags }}"{% if settings.flags == 'up' %} checked{% endif %}/>
+                        <label class="form-check-label" for="flags">Network flag</label>
+                    </div>
+                    <div class="form-control" id="network"{% if not settings.flags %} class="hide"{% endif %}></div>
+                    <div class="form-group">
+                        <label for="type">Network type</label>
+                        <select class="form-control" pattern="{{ regex.type }}" type="text" id="type" name="type" value="{{ settings.type }}">
+                            <option value="empty" {% if settings.type == "empty" %}selected{% endif %}>empty</option>
+                            <option value="veth" {% if settings.type == "veth" %}selected{% endif %}>veth</option>
+                            <option value="vlan" {% if settings.type == "vlan" %}selected{% endif %}>vlan</option>
+                            <option value="macvlan" {% if settings.type == "macvlan" %}selected{% endif %}>macvlan</option>
+                            <option value="phys" {% if settings.type == "phys" %}selected{% endif %}>phys</option>top
+                        </select>
+                    </div>
 
-                <div class="form-group">
-                    <label for="link">Network link</label>
-                    <input class="form-control" pattern="{{ regex.link }}" type="text" id="link" name="link" value="{{ settings.link }}" placeholder="Undefined">
-                </div>
+                    <div class="form-group">
+                        <label for="link">Network link</label>
+                        <input class="form-control" pattern="{{ regex.link }}" type="text" id="link" name="link" value="{{ settings.link }}" placeholder="Undefined">
+                    </div>
 
-                <div class="form-group">
-                    <label for="hwaddr">HW address</label>
-                    <input class="form-control" pattern="{{ regex.hwaddr }}" type="text" id="hwaddr" name="hwaddr" value="{{ settings.hwaddr }}" placeholder="Undefined">
-                </div>
+                    <div class="form-group">
+                        <label for="hwaddr">HW address</label>
+                        <input class="form-control" pattern="{{ regex.hwaddr }}" type="text" id="hwaddr" name="hwaddr" value="{{ settings.hwaddr }}" placeholder="Undefined">
+                    </div>
 
-                <div class="form-group">
-                    <label for="ipv4">IPv4 address</label>
-                    <input class="form-control" pattern="{{ regex.ipv4 }}" type="text" id="ipv4" name="ipv4" value="{{ settings.ipv4 }}" placeholder="Undefined">
-                </div>
-                <div class="form-group">
-                    <label for="ipv4gw">IPv4 gateway</label>
-                    <input class="form-control" pattern="{{ regex.ipv4gw }}" type="text" id="ipv4gw" name="ipv4gw" value="{{ settings.ipv4gw }}" placeholder="Undefined">
-                </div>
+                    <div class="form-group">
+                        <label for="ipv4">IPv4 address</label>
+                        <input class="form-control" pattern="{{ regex.ipv4 }}" type="text" id="ipv4" name="ipv4" value="{{ settings.ipv4 }}" placeholder="Undefined">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ipv4gw">IPv4 gateway</label>
+                        <input class="form-control" pattern="{{ regex.ipv4gw }}" type="text" id="ipv4gw" name="ipv4gw" value="{{ settings.ipv4gw }}" placeholder="Undefined">
+                    </div>
 
-                <div class="form-group">
-                    <label for="ipv6">IPv6 address</label>
-                    <input class="form-control" pattern="{{ regex.ipv6 }}" type="text" id="ipv6" name="ipv6" value="{{ settings.ipv6 }}" placeholder="Undefined">
-                </div>
+                    <div class="form-group">
+                        <label for="ipv6">IPv6 address</label>
+                        <input class="form-control" pattern="{{ regex.ipv6 }}" type="text" id="ipv6" name="ipv6" value="{{ settings.ipv6 }}" placeholder="Undefined">
+                    </div>
 
-                <div class="form-group">
-                    <label for="ipv6gw">IPv6 gateway</label>
-                    <input class="form-control" pattern="{{ regex.ipv6gw }}" type="text" id="ipv6gw" name="ipv6gw" value="{{ settings.ipv6gw }}" placeholder="Undefined">
-                </div>
+                    <div class="form-group">
+                        <label for="ipv6gw">IPv6 gateway</label>
+                        <input class="form-control" pattern="{{ regex.ipv6gw }}" type="text" id="ipv6gw" name="ipv6gw" value="{{ settings.ipv6gw }}" placeholder="Undefined">
+                    </div>
 
-                <div class="form-group">
-                    <label for="script_up">Network script up</label>
-                    <input class="form-control" pattern="{{ regex.script_up }}" type="text" id="script_up" name="script_up" value="{{ settings.script_up }}">
-                </div>
+                    <div class="form-group">
+                        <label for="script_up">Network script up</label>
+                        <input class="form-control" pattern="{{ regex.script_up }}" type="text" id="script_up" name="script_up" value="{{ settings.script_up }}">
+                    </div>
 
-                <div class="form-group">
-                    <label for="script_down">Network script down</label>
-                    <input class="form-control" pattern="{{ regex.script_down }}" type="text" id="script_down" name="script_down" value="{{ settings.script_down }}">
+                    <div class="form-group">
+                        <label for="script_down">Network script down</label>
+                        <input class="form-control" pattern="{{ regex.script_down }}" type="text" id="script_down" name="script_down" value="{{ settings.script_down }}">
+                    </div>
                 </div>
-            </div>
+                {% include 'includes/edit_apply_btn.html' %}
+                </form>
             </div>
         </div>
         <div class="tab-pane fade" id="resources" role="tabpanel" aria-labelledby="resources-tab">
             <div class="card">
+                <form ic-post-to="{{ url_for('main.edit', container=container) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
                 <div class="card-body">
                     <div class="form-group">
                         <label for="memlimit">Memory limit *</label>
@@ -229,23 +249,26 @@
                         <span class="help-inline"><small>(e.g /var/lib/lxc/{{container}}/rootfs)</small></span>
                     </div>
                 </div>
+                {% include 'includes/edit_apply_btn.html' %}
+                </form>
             </div>
         </div>
         <div class="tab-pane fade" id="logging" role="tabpanel" aria-labelledby="logging-tab">
             <div class="card">
+                <form ic-post-to="{{ url_for('main.edit', container=container) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
                 <div class="card-body">
                     <div class="form-group">
                         <label for="loglevel">Log level</label>
-                        <select class="form-control" type="text" id="loglevel" name="loglevel" value="{{ settings.loglevel }}">
-                            <option value="0">trace</option>
-                            <option value="1">debug</option>
-                            <option value="2">info</option>
-                            <option value="3">notice</option>
-                            <option value="4">warn</option>
-                            <option value="5">error</option>
-                            <option value="6">critical</option>
-                            <option value="7">alert</option>
-                            <option value="8">fatal</option>
+                        <select class="form-control" type="text" id="loglevel" name="loglevel">
+                            <option value="0" {% if settings.loglevel == '0' %}selected{% endif %}>trace</option>
+                            <option value="1" {% if settings.loglevel == '1' %}selected{% endif %}>debug</option>
+                            <option value="2" {% if settings.loglevel == '2' %}selected{% endif %}>info</option>
+                            <option value="3" {% if settings.loglevel == '3' %}selected{% endif %}>notice</option>
+                            <option value="4" {% if settings.loglevel == '4' %}selected{% endif %}>warn</option>
+                            <option value="5" {% if settings.loglevel == '5' %}selected{% endif %}>error</option>
+                            <option value="6" {% if settings.loglevel == '6' %}selected{% endif %}>critical</option>
+                            <option value="7" {% if settings.loglevel == '7' %}selected{% endif %}>alert</option>
+                            <option value="8" {% if settings.loglevel == '8' %}selected{% endif %}>fatal</option>
                         </select>
                         <span class="help-inline"><small>Default log level: 5 - error</small></span>
                     </div>
@@ -255,13 +278,23 @@
                         <span class="help-inline"><small></small></span>
                     </div>
                 </div>
+                {% include 'includes/edit_apply_btn.html' %}
+                </form>
             </div>
         </div>
+        {#</form>#}
         <div class="tab-pane fade" id="snapshots" role="tabpanel" aria-labelledby="snapshots-tab">
             <div class="card">
                 <div class="card-body">
+                    {% if infos['status'] == 'STOPPED' %}
                     <input id="name-{{ container }}" name="name" value="{{ container }}" type="hidden">
-                    <button class="btn btn-outline-danger" ic-replace-target="true" ic-include="#name-{{ container }}" ic-target="#snapshots-table" ic-post-to="{{ url_for('main.snapshot_container') }}">Create snapshot</button>
+                    <a id="create-snapshot" class="btn btn-outline-danger" ic-replace-target="true" ic-include="#name-{{ container }}" ic-target="#snapshots-table" ic-post-to="{{ url_for('main.snapshot_container') }}">
+                        Create snapshot&nbsp;<i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
+                    </a>
+                    {% else %}
+                    <div class="alert alert-warning">Stop container first to take snapshots.</div>
+                    {% endif %}
+                    
                     {% include 'snapshots.html' %}
                 </div>
             </div>
@@ -281,12 +314,15 @@
         #}
     </div>
 
+<!--
     <p class="text-right">
        <button class="btn btn-primary btn-lg" name="submit" value="apply"><i class="icon-ok icon-white"></i> Apply</button>
     </p>
+-->
+
 
     <p class="muted"><small>* Set to max to unset (unlimited)<br />** Leave empty to unset</small></p>
-</form>
+
 
 {% with container_name=container %}
 {% include "includes/modal_clone.html" %}
@@ -312,8 +348,10 @@
             function refreshMemory(container){
                 $.getJSON('{{ url_for('main.refresh_memory_containers', name='CONTAINER') }}'.replace("CONTAINER", container), function(data) {
                     var el = $('#'+container+' span');
-                    el.text(data.memusg+' MB');
-                    el[0].className = el[0].className.replace(/label\-(success|warning|important)/g,'label-'+memory_color(data.memusg));
+                    if (el.length > 0) {
+                        el.text(data.memusg+' MB');
+                        el[0].className = el[0].className.replace(/label\-(success|warning|important)/g,'label-'+memory_color(data.memusg));
+                    }
                 });
             }
 

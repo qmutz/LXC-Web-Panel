@@ -48,7 +48,7 @@ def home():
                 'name': container,
                 'settings': lwp.get_container_settings(container, status),
                 'memusg': 0,
-                'bucket': get_bucket_token(container)
+                #~ 'bucket': get_bucket_token(container)
             }
 
             containers_by_status.append(container_info)
@@ -88,19 +88,19 @@ def edit(container=None):
     if request.method == 'POST':
         form = request.form.copy()
 
-        if form['bucket'] != get_bucket_token(container):
-            g.db.execute("INSERT INTO machine(machine_name, bucket_token) VALUES (?, ?)", [container, form['bucket']])
-            g.db.commit()
-            flash(u'Bucket config for %s saved' % container, 'success')
+        #~ if form['bucket'] != get_bucket_token(container):
+            #~ g.db.execute("INSERT INTO machine(machine_name, bucket_token) VALUES (?, ?)", [container, form['bucket']])
+            #~ g.db.commit()
+            #~ flash(u'Bucket config for %s saved' % container, 'success')
 
         # convert boolean in correct value for lxc, if checkbox is inset value is not submitted inside POST
         form['flags'] = 'up' if 'flags' in form else 'down'
         form['start_auto'] = '1' if 'start_auto' in form else '0'
 
         # if memlimits/memswlimit is at max values unset form values
-        if int(form['memlimit']) == host_memory['total']:
+        if 'memlimit' in form and int(form['memlimit']) == host_memory['total']:
             form['memlimit'] = ''
-        if int(form['swlimit']) == host_memory['total'] * 2:
+        if 'swlimit' in form and int(form['swlimit']) == host_memory['total'] * 2:
             form['swlimit'] = ''
 
         for option in form.keys():
@@ -606,10 +606,7 @@ def backup_container():
     if request.method == 'POST':
         container = request.form['orig']
         sr_type = request.form['dest']
-        if 'push' in request.form:
-            push = request.form['push']
-        else:
-            push = False
+
         sr_path = None
         for sr in storage_repos:
             if sr_type in sr:
@@ -620,9 +617,9 @@ def backup_container():
 
         try:
             backup_file = lxc.backup(container=container, sr_type=sr_type, destination=sr_path)
-            bucket_token = get_bucket_token(container)
-            if push and bucket_token and USE_BUCKET:
-                    os.system('curl http://{}:{}/{} -F file=@{}'.format(BUCKET_HOST, BUCKET_PORT, bucket_token, backup_file))
+            #~ bucket_token = get_bucket_token(container)
+            #~ if push and bucket_token and USE_BUCKET:
+                    #~ os.system('curl http://{}:{}/{} -F file=@{}'.format(BUCKET_HOST, BUCKET_PORT, bucket_token, backup_file))
             backup_failed = False
         except lxc.ContainerDoesntExists:
             flash(u'The Container %s does not exist !' % container, 'error')
