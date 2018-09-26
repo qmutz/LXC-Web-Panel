@@ -29,7 +29,7 @@
                     <!--<a class="btn btn-block btn-primary{% if infos['status'] == 'RUNNING' %} disabled{% endif %}" {% if infos['status'] == 'STOPPED' or infos['status'] == 'FROZEN' %}href="{{ url_for('main.action', name=container, action=start_action[infos['status']], from='edit') }}"{% endif %}>
                         <i class="icon-play"></i> Start
                     </a>-->
-                    <a id="start-container" class="btn btn-block btn-primary" ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content" {% if infos['status'] == 'STOPPED' or infos['status'] == 'FROZEN' %}ic-get-from="{{ url_for('main.action', name=container, action=start_action[infos['status']], from='edit') }}"{% endif %}>
+                    <a id="start-container" class="btn btn-primary" ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content" {% if infos['status'] == 'STOPPED' or infos['status'] == 'FROZEN' %}ic-get-from="{{ url_for('main.action', name=container, action=start_action[infos['status']], from='edit') }}"{% endif %}>
                         Start<i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
                     </a>
                     {% endif %}
