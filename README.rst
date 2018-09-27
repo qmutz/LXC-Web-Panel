@@ -6,6 +6,7 @@ LXC-Web-Panel reloaded
 
 LXC-Web-Panel is an easy to use Linux Containers manager.
 
+- NEW Installer to make it even easier to start running.
 - Display some host and container information: IP, CPU, Mem and Disk usage.
 - List, create, delete containers and change container settings.
 - Start, stop and freeze containers
@@ -56,16 +57,15 @@ If you want to run lwp from source code:
   cd LXC-Web-Panel
   pip install cryptography # installing pyopenssl fails if cryptography is not already installed
   python setup.py install
-  mkdir /etc/lwp && mkdir /var/lwp
-  cp lwp.example.conf /etc/lwp/lwp.conf #default auth database user admin/admin
-  cp lwp.db /var/lwp/lwp.db
-  ./bin/lwp --debug        # run lwp wth debug support
+  ./bin/lwp        # run lwp wth debug support
 
 We need also a backup directory:
 
-::
+First run we will get an installer page, most of defaults are OK and just click INSTALL.
 
-  mkdir /var/lxc-backups
+Then stop lwp and start it again.
+
+Default login is admin/admin
   
 We recomend using /var/backups/lxc path, change appropiate settings in lwp.conf
 
