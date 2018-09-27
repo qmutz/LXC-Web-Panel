@@ -1,0 +1,135 @@
+{% extends "layout.html" %}
+{% block title %}Installer{% endblock %}
+{% block content %}
+
+<div class="col-lg-8 col-offset-2">
+    {{ super() }}
+    {% if can_we_install %}
+    <div class="card">
+        <div class="card-body">
+            <h1 class="card-title text-center">LXC Web Panel Installer</h1>
+            <h2>Review following checks or&nbsp;
+                <a class="btn btn-link" data-toggle="collapse" href="#collapseChecks" role="button" aria-expanded="true" aria-controls="collapseChecks">
+                hide them.
+                </a>
+            </h2>
+            <div id="collapseChecks" class="collapse show">
+            {% with cfg=checks %}
+            {% include 'includes/checkconfig_table.html' %}
+            {% endwith %}
+            </div>
+            <form action="" method="POST" class="form-install" style="padding:2em">
+                <fieldset>
+                    <legend>Main</legend>
+                    <div class="form-group">
+                        <label>Data directory</label>
+                        <input class="form-control" id="datadir" type="text" placeholder="/var/lwp" value="/var/lwp" name="datadir" autofocus required>
+                        <small class="form-text text-muted">Do not change if not sure</small>
+                        <label class="form-check-label">
+                            <input class="form-check-input" name="datadir_create" value="" type="checkbox" checked>
+                            Create directory if doesn't exist.
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>Configuration file</label>
+                        <input class="form-control" id="conffile" type="text" placeholder="/etc/lwp/lwp.conf" value="/etc/lwp/lwp.conf" name="conffile" required>
+                        <small class="form-text text-muted">Do not change if not sure</small>
+                        <label class="form-check-label">
+                            <input class="form-check-input" name="confile_create" value="" type="checkbox" checked>
+                            Create directory if doesn't exist.
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>Address</label>
+                        <input class="form-control" id="address" type="text" placeholder="127.0.0.1" value="127.0.0.1" name="address" required>
+                        <small class="form-text text-muted">Ip where LWP will be available in your Web browser</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Port</label>
+                        <input class="form-control" id="port" type="numeric" placeholder="5000" value="5000" name="port" required>
+                        <small class="form-text text-muted">Port where LWP will be available  in your Web browse</small>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>Access</legend>
+                    <div class="form-group">
+                        <label>Type</label>
+                        <select class="form-control" id="access" name="access" required>
+                            <option value="database" selected>Database</option>
+                            <option value="htpasswd">Basic HTTP Authentication</option>
+                            <option value="pam">Unix users PAM</option>
+                        </select>
+                        <small class="form-text text-muted">Authentication method for users access.<br>
+                        API uses their own tokens.
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label>Htpasswd File</label>
+                        <input class="form-control" id="htpasswd_file" name="htpasswd_file" value="/var/lwp/htpasswd" required>
+                        <small class="form-text text-muted">If auth is htpasswd this is the htpasswd file that will be used</small>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>Database</legend>
+                    <div class="form-group">
+                        <label>Server type</label>
+                        <select class="form-control" id="database" name="database" required>
+                            <option value="sqlite" selected>SQLite</option>
+                            <option value="mysql">MySQL/MariaDB</option>
+                            <option value="postgresql">Postgresql</option>
+                        </select>
+                        <small class="form-text text-muted">Database for projects and tokens.<br>
+                        This database is also used if access for user data if mode is "database".
+                        </small>
+                        <label>Database URI</label>
+                        <input class="form-control" id="database_uri" name="database_uri" value="sqlite:///var/lwp/lwp.db" required>
+                        <small class="form-text text-muted">
+                            Easiest one for one user is SQLite<br>
+                            sqlite:///var/lwp/lwp.db<br>
+                            mysql://dbuser:dbpassword@localhost:3306/lwp
+                            postgresql://postgres:dbpassword@localhost:5432/lwp<br>
+                        </small>
+                    </div>
+                <fieldset>
+                    <legend>Storage</legend>
+                    <div class="form-group">
+                        <label>Local Storage</label>
+                        <input class="form-control" id="local_storage_repository" name="local_storage_repository" value="local_storage_repository" required>
+                        <label class="form-check-label">
+                            <input class="form-check-input" name="local_storage_repository_create" value="" type="checkbox" checked>
+                            Create directory if doesn't exist.
+                        </label>
+                        <small class="form-text text-muted">Do not change if setting is not understood.</small>
+                    </div>
+                    <div class="form-group">
+                        <label>External Storage</label>
+                        <input class="form-control" id="external_storage_repository" name="external_storage_repository" value="/mnt/lxc/backups" required>
+                        <small class="form-text text-muted">Do not change if setting is not understood.</small>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend>Advanced</legend>                
+                    <div class="form-group">
+                        <label>Session timespam</label>
+                        <input class="form-control" id="session" name="session" value="10" required><div class="form-check">
+                    </div>
+                        <small class="form-text text-muted">Do not change if setting is not understood.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <input id="inputURL" type="hidden" name="url" value="{{ request.path }}">
+                        <button type="submit" class="btn btn-lg btn-primary">Install</button>
+                    </div>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-danger">
+        <h2>Error</h2>
+        Looks like you are not running LXC Web Panel Installer under a privileged user like <strong>root</strong> or with <strong>sudo myuser</strong>.<br>
+        Please correct and run again.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
