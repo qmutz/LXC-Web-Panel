@@ -58,41 +58,16 @@ If you want to run lwp from source code:
   pip install cryptography # installing pyopenssl fails if cryptography is not already installed
   python setup.py install
   ./bin/lwp        # run lwp wth debug support
-
-We need also a backup directory:
+  
+We recomend using /var/lpw/backups or /var/backups/lxc path.
 
 First run we will get an installer page, most of defaults are OK and just click INSTALL.
 
 Then stop lwp and start it again.
 
-Default login is admin/admin
-  
-We recomend using /var/backups/lxc path, change appropiate settings in lwp.conf
+Default login is admin/admin but soon it will be configurable through the installer.
 
-Configuration
--------------
-
-1. Copy /etc/lwp/lwp.example.conf to /etc/lwp/lwp.conf
-2. edit it
-3. start lwp service as root ``service lwp start``
-
-Your lwp panel is now at http://localhost:5000/ and default username and password are admin/admin.
-
-
-Authentication methods
-^^^^^^^^^^^^^^^^^^^^^^
-
-Default authentication is against the internal sqlite database, but it's possible to configure alternative backends.
-
-LDAP
-++++
-
-To enable ldap auth you should set ``auth`` type to ``ldap`` inside your config file then configure all options inside ldap section.
-See lwp.example.conf for references.
-
-Pyhton LDAP need to be installed::
-
-  apt-get install python-ldap
+Your lwp panel is now at http://localhost:5000/.
 
 htpasswd
 ++++++++
