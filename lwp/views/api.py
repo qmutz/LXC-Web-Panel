@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function
-
+import socket
 import json
 
 from flask import Blueprint, request, g, jsonify
-
+import lwp
 import lwp.lxclite as lxc
 from lwp.utils import api_auth
 
@@ -12,6 +12,19 @@ from lwp.utils import api_auth
 mod = Blueprint('api', __name__)
 
 
+@mod.route('/api/v1/host')
+@api_auth()
+def get_host_info():
+    """
+    Returns lxc containers on the current machine and brief status information.
+    """
+    info = {
+        'hostname': socket.gethostname(),
+        'distribution': lwp.name_distro(),
+        'version': lwp.check_version(),
+    }
+    return jsonify(info)
+    
 @mod.route('/api/v1/containers/')
 @api_auth()
 def get_containers():

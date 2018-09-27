@@ -1,9 +1,10 @@
 {% extends "layout.html" %}
 {% block title %}Token management{% endblock %}
 {% block content %}
-<div class="span7">
+<div class="card">
     {{ super() }}
     <p>On this page you can review, add and revoke API tokens.</p>
+    <div class="card-content">
     <table class="table table-hover">
         <thead>
         <tr>
@@ -32,7 +33,7 @@
         <input type="hidden" name="action" value="add">
         <button type="submit" class="btn btn-success">Add token</button>
     </form>
-
+    </div>
 </div>
 {% endblock %}
 {% block script %}

@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-from lwp.utils import query_db, hash_passwd
+from lwp.utils import hash_passwd
+from lwp.database.models import Users
 
 
 class database:
     def authenticate(self, username, password):
         hash_password = hash_passwd(password)
-        return query_db('select name, username, su from users where username=? and password=?', [username, hash_password], one=True)
+        results = Users.select().where((Users.username == username)).limit(1)
+        results results[0] if len(results) > 0 else None

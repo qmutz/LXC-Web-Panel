@@ -1,11 +1,9 @@
-import sys
+import os, sys
 import time
 import hashlib
-import sqlite3
-from configparser import ConfigParser, RawConfigParser
 
-from flask import session, render_template, g, flash, request, jsonify
-
+from flask import session, flash, request, jsonify
+from lwp.config import ConfigParser, read_config_file
 
 """
 cgroup_ext is a data structure where for each input of edit.html we have an array with:
@@ -52,68 +50,6 @@ cgroup_ext = {
 }
 
 
-# configuration
-#config = ConfigParser.SafeConfigParser()
-config = ConfigParser()
-
-
-def read_config_file():
-    try:
-        # TODO: should really use with statement here rather than rely on cpython reference counting
-        config.readfp(open('/etc/lwp/lwp.conf'))
-    except:
-        # TODO: another blind exception
-        print(' * missed /etc/lwp/lwp.conf file')
-        try:
-            # fallback on local config file
-            config.readfp(open('lwp.conf'))
-        except:
-            print(' * cannot read config files. Exit!')
-            sys.exit(1)
-    return config
-
-
-def connect_db(db_path):
-    """
-    SQLite3 connect function
-    """
-    return sqlite3.connect(db_path)
-
-
-def query_db(query, args=(), one=False):
-    cur = g.db.execute(query, args)
-    rv = [dict((cur.description[idx][0], value) for idx, value in enumerate(row)) for row in cur.fetchall()]
-    return (rv[0] if rv else None) if one else rv
-
-
-def if_logged_in(function=render_template, f_args=('login.html', )):
-    """
-    helper decorator to verify if a user is logged
-    """
-    def decorator(handler):
-        def new_handler(*args, **kwargs):
-            if 'logged_in' in session:
-                return handler(*args, **kwargs)
-            else:
-                token = request.headers.get('Private-Token')
-                result = query_db('select * from api_tokens where token=?', [token], one=True)
-                if result is not None:
-                    # token exists, access granted
-                    return handler(*args, **kwargs)
-            return function(*f_args)
-        new_handler.__name__ = handler.__name__
-        return new_handler
-    return decorator
-
-
-def get_bucket_token(container):
-    query = query_db("SELECT bucket_token FROM machine WHERE machine_name=?", [container], one=True)
-    if query is None:
-        return ""
-    else:
-        return query['bucket_token']
-
-
 def hash_passwd(passwd):
     return hashlib.sha512(passwd.encode('utf-8')).hexdigest()
 
@@ -123,6 +59,7 @@ def get_token():
 
 
 def check_session_limit():
+    config = read_config_file()
     if 'logged_in' in session and session.get('last_activity') is not None:
         now = int(time.time())
         limit = now - 60 * int(config.get('session', 'time'))
@@ -139,6 +76,7 @@ def check_session_limit():
         else:
             session['last_activity'] = now
 
+from lwp.database.models import ApiTokens
 
 def api_auth():
     """
@@ -150,8 +88,9 @@ def api_auth():
             if token is None:
                 token = request.headers.get('Private-Token')
             if token:
-                result = query_db('select * from api_tokens where token=?', [token], one=True)
-                if result is not None:
+                results = ApiTokens.select().where(ApiTokens.token == token).limit(1)
+                result = results[0] if len(results) > 0 else None
+                if result:
                     # token exists, access granted
                     return handler(*args, **kwargs)
                 else:

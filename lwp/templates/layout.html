@@ -21,6 +21,7 @@
 </head>
 
 <body style="background-color:#efefef;">
+    {% block inner_body %}
     {% if session.logged_in %}
     {% include "includes/nav.html" %}
     {% endif %}
@@ -65,5 +66,6 @@
     });
         </script>
 {% block script %}{% endblock %}
+{% endblock %}
 </body>
 </html>

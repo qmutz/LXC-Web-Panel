@@ -13,7 +13,7 @@ from lwp.lxclite import exists, stopped
 from lwp.lxclite import lxcdir
 from lwp.utils import cgroup_ext, ConfigParser, RawConfigParser
 
-SESSION_SECRET_FILE = '/etc/lwp/session_secret'
+#~ 
 
 class NormalizeConfig(object):
     def __init__(self, fp):

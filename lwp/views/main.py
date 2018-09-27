@@ -5,30 +5,78 @@ import re
 import time
 import socket
 import subprocess
-
+import requests
 from flask import Blueprint, request, session, g, redirect, url_for, abort, render_template, flash, jsonify
-
+from flask import current_app as app
 import lwp
 import lwp.lxclite as lxc
-from lwp.utils import query_db, if_logged_in, get_bucket_token, hash_passwd, read_config_file, cgroup_ext, ConfigParser
+from lwp.utils import query_db, hash_passwd, cgroup_ext
+from lwp.config import read_config_file, ConfigParser
+from lwp.decorators import if_logged_in
 from lwp.views.auth import AUTH
 
 # TODO: see if we can move this block somewhere better
-try:
-    config = read_config_file()
-    USE_BUCKET = config.getboolean('global', 'buckets')
-    BUCKET_HOST = config.get('buckets', 'buckets_host')
-    BUCKET_PORT = config.get('buckets', 'buckets_port')
-except ConfigParser.NoOptionError:
-    USE_BUCKET = False
-    print("- Bucket feature disabled")
+config_file = read_config_file()
+if hasattr(config_file,'setup') and config_file.setup == True:
+    config = None
+    storage_repos = []
+else:
+    config = config_file
+    storage_repos = config.items('storage_repository')
+#~ try:
+    #~ USE_BUCKET = config.getboolean('global', 'buckets')
+    #~ BUCKET_HOST = config.get('buckets', 'buckets_host')
+    #~ BUCKET_PORT = config.get('buckets', 'buckets_port')
+#~ except ConfigParser.NoOptionError:
+    #~ USE_BUCKET = False
+    #~ print("- Bucket feature disabled")
 
 
-storage_repos = config.items('storage_repository')
 
 # Flask module
 mod = Blueprint('main', __name__)
 
+
+api_prefix = '/api/v1'
+payload = {'private_token':'bec08h'}
+
+def plain_containers(_list):
+    container_list = []
+    for container in _list:
+        container_list.append(container['container'])
+    return container_list
+
+def get_containers(plain=False,by_status=False):
+    url = 'http://{}:{}{}'.format(app.config['ADDRESS'], app.config['PORT'],api_prefix)
+    r = requests.get(url + '/containers',params=payload)
+    print(r.text)
+    container_list = r.json()
+    
+    STATUSES = ('RUNNING', 'FROZEN', 'STOPPED')
+    if plain:
+        plain_containers(container_list)
+        return plain_list
+    #~ if clonable:
+        #~ STATUSES = ('STOPPED',)
+        #~ by_status = True
+    if by_status:
+        containers_status = []
+        for status in STATUSES:
+            containers_by_status = []
+            for container in container_list:
+                if container['state'] == status.lower():
+                    container_info = {
+                        'name': container['container'],
+                        'settings': lwp.get_container_settings(container['container'], status),
+                        'memusg': 0,
+                    }
+                    containers_by_status.append(container_info)
+            containers_status.append({
+                'status': status.lower(),
+                'containers': containers_by_status
+            })
+        return container_list, containers_status
+    return container_list
 
 @mod.route('/')
 @mod.route('/home')
@@ -37,30 +85,33 @@ def home():
     """
     home page function
     """
-    listx = lxc.listx()
+    url = 'http://{}:{}{}'.format(app.config['ADDRESS'], app.config['PORT'],api_prefix)
+    r = requests.get(url + '/containers',params=payload)
+    container_list = r.json()
+    h = requests.get(url + '/host',params=payload)
+    host_info = h.json()
     containers_all = []
+    clonable_containers = []
+    container_list, containers_status = get_containers(by_status=True)
+    containers_plain = plain_containers(container_list)
+    for container in container_list:
+        if container['state'] == 'stopped':
+            clonable_containers.append(container['container'])
+        #~ containers_plain.append(container['container'])
+    
 
-    for status in ('RUNNING', 'FROZEN', 'STOPPED'):
-        containers_by_status = []
-
-        for container in listx[status]:
-            container_info = {
-                'name': container,
-                'settings': lwp.get_container_settings(container, status),
-                'memusg': 0,
-                #~ 'bucket': get_bucket_token(container)
-            }
-
-            containers_by_status.append(container_info)
-        containers_all.append({
-            'status': status.lower(),
-            'containers': containers_by_status
-        })
-        clonable_containers = listx['STOPPED']
-
-    return render_template('index.html', containers=lxc.ls(), containers_all=containers_all, dist=lwp.name_distro(),
-                           host=socket.gethostname(), templates=lwp.get_templates_list(), storage_repos=storage_repos,
-                           auth=AUTH, clonable_containers=clonable_containers)
+    context = {
+        'containers': containers_plain,
+        'containers_all': containers_status,
+        'clonable_containers': clonable_containers,
+        'dist': host_info['distribution'],
+        'host': host_info['hostname'],
+        'templates': lwp.get_templates_list(),
+        'storage_repos': storage_repos,
+        'auth': AUTH,
+    }
+    #~ print(lxc.ls())
+    return render_template('index.html', **context)
 
 
 @mod.route('/about')
@@ -69,12 +120,21 @@ def about():
     """
     about page
     """
-    return render_template('about.html', containers=lxc.ls(), version=lwp.check_version(), dist=lwp.name_distro(), host=socket.gethostname())
-
-def decodenorm(value):
-    if isinstance(value, bytes):
-        return value.decode('utf-8')
-    return value
+    url = 'http://{}:{}{}'.format(app.config['ADDRESS'], app.config['PORT'],api_prefix)
+    h = requests.get(url + '/host',params=payload)
+    r = requests.get(url + '/containers',params=payload)
+    containers_plain = get_containers(plain=True)
+    
+    host_info = h.json()
+    #~ containers_plain = []
+    context = {
+        'containers': containers_plain,
+        'version':host_info['version'],
+        'dist':host_info['distribution'],
+        'host':host_info['hostname'],
+    }
+    #~ return render_template('about.html', containers=lxc.ls(), version=lwp.check_version(), dist=lwp.name_distro(), host=socket.gethostname())
+    return render_template('about.html', **context)
     
 @mod.route('/<container>/edit', methods=['POST', 'GET'])
 @if_logged_in()
@@ -348,10 +408,11 @@ def action():
     """
     act = request.args['action']
     name = request.args['name']
-
+    
     # TODO: refactor this method, it's horrible to read
     if act == 'start':
         try:
+            
             if lxc.start(name) == 0:
                 time.sleep(1)  # Fix bug : "the container is randomly not displayed in overview list after a boot"
                 flash(u'Container %s started successfully!' % name, 'success')

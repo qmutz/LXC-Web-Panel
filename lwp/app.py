@@ -7,10 +7,13 @@ import sys
 
 from flask import Flask, g
 
-from lwp.utils import connect_db, check_session_limit, config
-from lwp import SESSION_SECRET_FILE
+from lwp.utils import connect_db
+from lwp.config import config
+#~ from lwp import SESSION_SECRET_FILE
 from lwp.views import main, auth, api
-
+from peewee import *
+from playhouse.flask_utils import FlaskDB
+SESSION_SECRET_FILE = '/etc/lwp/session_secret'
 try:
     SECRET_KEY = open(SESSION_SECRET_FILE, 'br').read()
 except IOError:
@@ -23,13 +26,17 @@ ADDRESS = config.get('global', 'address')
 PORT = int(config.get('global', 'port'))
 PREFIX = config.get('global', 'prefix')
 
+#~ from lwp.database.models import db
 # Flask app
+#~ from playhouse.flask_utils import FlaskDB
+
+#~ database = FlaskDB()
+
 app = Flask('lwp', static_url_path="{0}/static".format(PREFIX))
 app.config.from_object(__name__)
 app.register_blueprint(main.mod, url_prefix=PREFIX)
 app.register_blueprint(auth.mod, url_prefix=PREFIX)
 app.register_blueprint(api.mod, url_prefix=PREFIX)
-
 
 if '--profiling' in sys.argv[1:]:
     from werkzeug.contrib.profiler import ProfilerMiddleware
@@ -43,8 +50,10 @@ def before_request():
     """
     executes functions before all requests
     """
+    pass
+    from lwp.utils import check_session_limit
     check_session_limit()
-    g.db = connect_db(app.config['DATABASE'])
+    #~ g.db = connect_db(app.config['DATABASE'])
 
 
 @app.teardown_request

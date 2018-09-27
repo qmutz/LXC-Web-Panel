@@ -5,13 +5,22 @@ import time
 
 from flask import Blueprint, request, session, redirect, url_for, render_template, flash
 
-from lwp.utils import get_token, read_config_file
-
+from lwp.utils import get_token
+from lwp.config import read_config_file
 import lwp.authenticators as auth
 
-AUTH = read_config_file().get('global', 'auth')
-AUTH_INSTANCE = auth.get_authenticator(AUTH)
-print(' * Auth type: ' + AUTH)
+
+config = read_config_file()
+
+
+if hasattr(config,'setup') and config.setup == True:
+    print(' * Setup mode')
+    AUTH = False
+    AUTH_INSTANCE = auth.get_authenticator(AUTH)
+else:
+    AUTH = read_config_file().get('global', 'auth')
+    AUTH_INSTANCE = auth.get_authenticator(AUTH)
+    print(' * Auth type: ' + AUTH)
 
 
 # Flask module
@@ -32,9 +41,9 @@ def login():
             session['logged_in'] = True
             session['token'] = get_token()
             session['last_activity'] = int(time.time())
-            session['username'] = user['username']
-            session['name'] = user['name']
-            session['su'] = user['su']
+            session['username'] = user.username
+            session['name'] = user.name
+            session['su'] = user.su
             flash(u'You are logged in!', 'success')
 
             if current_url == url_for('auth.login'):

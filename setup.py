@@ -24,6 +24,7 @@ setup(
         #'python-ldap',
         'cryptography',
         'PyOpenSSL',
+        'peewee',
     ],
     scripts=['bin/lwp'],
 )
