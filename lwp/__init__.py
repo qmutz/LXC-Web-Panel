@@ -11,8 +11,8 @@ import subprocess
 from lwp.exceptions import ContainerNotExists, LxcConfigFileNotComplete
 from lwp.lxclite import exists, stopped
 from lwp.lxclite import lxcdir
-from lwp.utils import cgroup_ext, ConfigParser, RawConfigParser
-
+from lwp.utils import cgroup_ext 
+from lwp.config import ConfigParser, RawConfigParser
 #~ 
 
 class NormalizeConfig(object):

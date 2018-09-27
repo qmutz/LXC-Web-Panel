@@ -1,5 +1,5 @@
 import os
-from configparser import ConfigParser
+from configparser import ConfigParser, RawConfigParser
 
 config = ConfigParser()
 CONFIG_FILE = '/etc/lwp/lwp.conf'

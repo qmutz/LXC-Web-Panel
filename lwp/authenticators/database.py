@@ -7,4 +7,4 @@ class database:
     def authenticate(self, username, password):
         hash_password = hash_passwd(password)
         results = Users.select().where((Users.username == username)).limit(1)
-        results results[0] if len(results) > 0 else None
+        return results[0] if len(results) > 0 else None

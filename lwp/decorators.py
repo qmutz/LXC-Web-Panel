@@ -1,4 +1,4 @@
-from flask import session, request
+from flask import session, request, render_template
 from lwp.database.models import ApiTokens
 
 def if_logged_in(function=render_template, f_args=('login.html', )):

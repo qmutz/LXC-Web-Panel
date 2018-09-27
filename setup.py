@@ -25,6 +25,7 @@ setup(
         'cryptography',
         'PyOpenSSL',
         'peewee',
+        'requests',
     ],
     scripts=['bin/lwp'],
 )

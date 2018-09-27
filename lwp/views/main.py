@@ -10,7 +10,7 @@ from flask import Blueprint, request, session, g, redirect, url_for, abort, rend
 from flask import current_app as app
 import lwp
 import lwp.lxclite as lxc
-from lwp.utils import query_db, hash_passwd, cgroup_ext
+from lwp.utils import hash_passwd, cgroup_ext
 from lwp.config import read_config_file, ConfigParser
 from lwp.decorators import if_logged_in
 from lwp.views.auth import AUTH
@@ -49,16 +49,12 @@ def plain_containers(_list):
 def get_containers(plain=False,by_status=False):
     url = 'http://{}:{}{}'.format(app.config['ADDRESS'], app.config['PORT'],api_prefix)
     r = requests.get(url + '/containers',params=payload)
-    print(r.text)
     container_list = r.json()
     
     STATUSES = ('RUNNING', 'FROZEN', 'STOPPED')
     if plain:
         plain_containers(container_list)
         return plain_list
-    #~ if clonable:
-        #~ STATUSES = ('STOPPED',)
-        #~ by_status = True
     if by_status:
         containers_status = []
         for status in STATUSES:

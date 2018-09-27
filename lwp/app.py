@@ -6,8 +6,6 @@ import os
 import sys
 
 from flask import Flask, g
-
-from lwp.utils import connect_db
 from lwp.config import config
 #~ from lwp import SESSION_SECRET_FILE
 from lwp.views import main, auth, api
