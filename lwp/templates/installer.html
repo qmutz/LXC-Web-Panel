@@ -4,7 +4,20 @@
 
 <div class="col-lg-8 col-offset-2">
     {{ super() }}
-    {% if can_we_install %}
+    {% if already_installed %}
+    <div class="card">
+        <div class="card-body">
+            <h1 class="card-title text-center">LXC Web Panel Installer</h1>
+            <div class="alert alert-info">
+                <h2>LXC Web Panel is installed.</h2>
+                Restart the lwp process to be able to login and manage your containers.<br>
+                Thank you,<br>
+                <em>The LWP Team</em>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% if can_we_install and already_installed == False %}
     <div class="card">
         <div class="card-body">
             <h1 class="card-title text-center">LXC Web Panel Installer</h1>
@@ -22,20 +35,16 @@
                 <fieldset>
                     <legend>Main</legend>
                     <div class="form-group">
+                        <label>Configuration file</label>
+                        <input class="form-control" id="conffile" type="text" placeholder="/etc/lwp/lwp.conf" value="/etc/lwp/lwp.conf" name="conffile" disabled>
+                        <small class="form-text text-muted">Cannot be changed</small>
+                    </div>
+                    <div class="form-group">
                         <label>Data directory</label>
                         <input class="form-control" id="datadir" type="text" placeholder="/var/lwp" value="/var/lwp" name="datadir" autofocus required>
                         <small class="form-text text-muted">Do not change if not sure</small>
                         <label class="form-check-label">
                             <input class="form-check-input" name="datadir_create" value="" type="checkbox" checked>
-                            Create directory if doesn't exist.
-                        </label>
-                    </div>
-                    <div class="form-group">
-                        <label>Configuration file</label>
-                        <input class="form-control" id="conffile" type="text" placeholder="/etc/lwp/lwp.conf" value="/etc/lwp/lwp.conf" name="conffile" required>
-                        <small class="form-text text-muted">Do not change if not sure</small>
-                        <label class="form-check-label">
-                            <input class="form-check-input" name="confile_create" value="" type="checkbox" checked>
                             Create directory if doesn't exist.
                         </label>
                     </div>
@@ -82,10 +91,10 @@
                         This database is also used if access for user data if mode is "database".
                         </small>
                         <label>Database URI</label>
-                        <input class="form-control" id="database_uri" name="database_uri" value="sqlite:///var/lwp/lwp.db" required>
+                        <input class="form-control" id="database_uri" name="database_uri" value="sqlite:////var/lwp/lwp.db" required>
                         <small class="form-text text-muted">
                             Easiest one for one user is SQLite<br>
-                            sqlite:///var/lwp/lwp.db<br>
+                            sqlite:////var/lwp/lwp.db<br>
                             mysql://dbuser:dbpassword@localhost:3306/lwp
                             postgresql://postgres:dbpassword@localhost:5432/lwp<br>
                         </small>
@@ -94,9 +103,10 @@
                     <legend>Storage</legend>
                     <div class="form-group">
                         <label>Local Storage</label>
-                        <input class="form-control" id="local_storage_repository" name="local_storage_repository" value="local_storage_repository" required>
+                        <input class="form-control" id="local_storage_repository" name="local_storage_repository" value="backups" required>
                         <label class="form-check-label">
                             <input class="form-check-input" name="local_storage_repository_create" value="" type="checkbox" checked>
+                            Inside Data directory<br>
                             Create directory if doesn't exist.
                         </label>
                         <small class="form-text text-muted">Do not change if setting is not understood.</small>
@@ -125,11 +135,13 @@
         </div>
     </div>
     {% else %}
-    <div class="alert alert-danger">
-        <h2>Error</h2>
-        Looks like you are not running LXC Web Panel Installer under a privileged user like <strong>root</strong> or with <strong>sudo myuser</strong>.<br>
-        Please correct and run again.
-    </div>
+        {% if already_installed == False %}
+        <div class="alert alert-danger">
+            <h2>Error</h2>
+            Looks like you are not running LXC Web Panel Installer under a privileged user like <strong>root</strong> or with <strong>sudo myuser</strong>.<br>
+            Please correct and run again.
+        </div>
+        {% endif %}
     {% endif %}
 </div>
 {% endblock %}

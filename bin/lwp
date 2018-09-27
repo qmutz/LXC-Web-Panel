@@ -3,6 +3,7 @@
 
 import os
 import sys
+from lwp.config import read_config_file
 
 if __name__ == '__main__':
     if '--generate-session-secret' in sys.argv[1:]:
@@ -12,9 +13,10 @@ if __name__ == '__main__':
             handle.write(key)
             exit(0)
 
-    from lwp.config import read_config_file
-    config_file = read_config_file()  # init the global config object, init DEBUG
-    if hasattr(config_file,'setup') and config_file.setup == True:
+    
+    config = read_config_file()  # init the global config object, init DEBUG
+    #~ if hasattr(config_file,'setup') and config_file.setup == True:
+    if 'setup_mode' in config['global'] and config['global']['setup_mode'] == 'True':
         from lwp.installer import app, DEBUG
     else:
         from lwp.app import app, DEBUG

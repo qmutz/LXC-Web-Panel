@@ -3,6 +3,7 @@
 from __future__ import absolute_import, print_function
 
 import os
+import subprocess
 import sys
 import string, random
 def id_generator(size=24, chars=string.ascii_uppercase + string.digits):
@@ -12,21 +13,8 @@ from flask import Flask, request, session, g, redirect, url_for, abort, render_t
 from lwp.utils import ConfigParser
 #~ from lwp.utils import connect_db, check_session_limit, config
 import lwp.lxclite as lxc
-#~ from lwp import SESSION_SECRET_FILE
-#~ from lwp.views import main, auth, api
 
-#~ try:
-    #~ SECRET_KEY = open(SESSION_SECRET_FILE, 'br').read()
-#~ except IOError:
-    #~ print(' * Missing session_secret file, your session will not survive server reboot. Run with --generate-session-secret to generate permanent file.')
-    #~ SECRET_KEY = os.urandom(24)
-
-DEBUG = True
-#~ DEBUG = config.getboolean('global', 'debug')
-#~ DATABASE = config.get('database', 'file')
-#~ ADDRESS = config.get('global', 'address')
-#~ PORT = int(config.get('global', 'port'))
-#~ PREFIX = config.get('global', 'prefix')
+DEBUG = False
 ADDRESS = 'localhost'
 PORT = 5000
 PREFIX = '/install'
@@ -34,9 +22,7 @@ PREFIX = '/install'
 # Flask app
 app = Flask('lwp', static_url_path="{0}/static".format(PREFIX))
 app.config.from_object(__name__)
-#~ app.register_blueprint(main.mod, url_prefix=PREFIX)
-#~ app.register_blueprint(auth.mod, url_prefix=PREFIX)
-#~ app.register_blueprint(api.mod, url_prefix=PREFIX)
+
 def create(path):
     if os.path.exists(path) == False:
         os.makedirs(path)
@@ -47,22 +33,34 @@ def get_parent_path(path):
     parent = os.path.join('/'.join(sp[0:-1]))
     return parent
 
+def is_already_installed():
+    try:
+        from lwp.config import read_config_file
+        config = read_config_file()
+        config.get('database', 'file')
+        return True
+    except: pass
+    return False
+
 @app.route('/', methods=['POST', 'GET'], defaults={'path': ''})
 @app.route('/<path:path>', methods=['POST', 'GET'])
 def install(path):
     """
     Installer
     """ 
-    print(path)
+    exec_path = os.path.abspath(os.path.dirname(sys.argv[0]))
     if len(path) > 0:
         return redirect('/')
     test_file = os.path.join('/etc',id_generator())
     can_we_install = False
-    print(test_file)
+    already_installed = is_already_installed()
+    print(already_installed)
     context = {
-        'hie': 'yea',
         'can_we_install': can_we_install,
+        'already_installed': already_installed,
     }
+    
+
     try:
         open(test_file, 'w').close()
     except:
@@ -74,6 +72,7 @@ def install(path):
         return render_template('installer.html', **context)
     context['checks'] = lxc.checkconfig()
     if request.method == 'POST':
+        from lwp.utils import hash_passwd
         f = request.form
         datadir = f.get('datadir','/var/lwp')
         create(datadir)
@@ -83,17 +82,29 @@ def install(path):
         config['global'] = {}
         config['global']['address'] = f.get('address','127.0.0.1')
         config['global']['debug'] = f.get('debug','False')
-        config['global']['port'] = f.get('port',5000)
+        config['global']['port'] = f.get('port','5000')
         config['global']['auth'] = f.get('auth','database')
         config['global']['prefix'] = f.get('prefix','')
         config['storage_repository'] = {}
-        config['storage_repository']['local'] = f.get('local_storage_repository','local_storage_repository')
+        config['storage_repository']['local'] = f.get('local_storage_repository','backups')
+        create(os.path.join(datadir,config['storage_repository']['local']))
         config['database'] = {}
-        config['database']['file'] = f.get('database_uri','sqlite:///var/lwp/lwp.db')
+        config['database']['file'] = f.get('database_uri','sqlite:////var/lwp/lwp.db')
         config['session'] = {}
-        config['session']['time'] = f.get('time',10)
-        
-        
+        config['session']['time'] = f.get('time','10')
+        config['api'] = {}
+        internal_token = hash_passwd('lwp')
+        config['api']['username'] = f.get('api_username','admin')
+        config['api']['token'] = f.get('api_token',internal_token)
         with open(conffile, 'w') as configfile:
             config.write(configfile)
+        
+        from lwp.database.models import get_database, Users, ApiTokens
+
+        database = get_database()
+        database.create_tables([Users, ApiTokens,])
+        Users.create(name='Admin',username='admin',su='Yes',password=hash_passwd('admin'))
+        ApiTokens.create(username='admin',description='internal',token=internal_token)
+        subprocess.check_call('touch {}'.format(exec_path), shell=True)
+        context['already_installed'] = is_already_installed()
     return render_template('installer.html', **context)

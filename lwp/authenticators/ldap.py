@@ -46,7 +46,6 @@ class ldap:
                     'name': q[1][self.DISPLAY_MAPPING][0].decode('utf8'),
                     'su': 'Yes'
                 }
-        except Exception, e:
+        except Exception as e:
             print(str(e))
-
         return user

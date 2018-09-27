@@ -13,7 +13,7 @@ import lwp.authenticators as auth
 config = read_config_file()
 
 
-if hasattr(config,'setup') and config.setup == True:
+if 'setup_mode' in config['global'] and config['global']['setup_mode'] == 'True':
     print(' * Setup mode')
     AUTH = False
     AUTH_INSTANCE = auth.get_authenticator(AUTH)

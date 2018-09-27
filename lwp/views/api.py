@@ -6,7 +6,7 @@ import json
 from flask import Blueprint, request, g, jsonify
 import lwp
 import lwp.lxclite as lxc
-from lwp.utils import api_auth
+from lwp.decorators import api_auth
 
 # Flask module
 mod = Blueprint('api', __name__)

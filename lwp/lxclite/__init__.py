@@ -258,7 +258,6 @@ def checkconfig():
     out = _run('lxc-checkconfig', output=True)
     if out:
         rtr = out.replace(b'[1;32m', b'').replace(b'[1;33m', b'').replace(b'[0;39m', b'').replace(b'[1;32m', b'').replace(b'\x1b', b'').replace(b': ', b':').split(b'\n')
-        print(rtr)
         return [x.decode('utf8') for x in rtr]
     return out.decode('utf-8')
 

@@ -15,30 +15,22 @@ from lwp.config import read_config_file, ConfigParser
 from lwp.decorators import if_logged_in
 from lwp.views.auth import AUTH
 
-# TODO: see if we can move this block somewhere better
-config_file = read_config_file()
-if hasattr(config_file,'setup') and config_file.setup == True:
+config = read_config_file()
+
+if 'setup_mode' in config['global'] and config['global']['setup_mode'] == 'True':
     config = None
+    private_token = None
     storage_repos = []
 else:
-    config = config_file
+    private_token = config['api']['token']
     storage_repos = config.items('storage_repository')
-#~ try:
-    #~ USE_BUCKET = config.getboolean('global', 'buckets')
-    #~ BUCKET_HOST = config.get('buckets', 'buckets_host')
-    #~ BUCKET_PORT = config.get('buckets', 'buckets_port')
-#~ except ConfigParser.NoOptionError:
-    #~ USE_BUCKET = False
-    #~ print("- Bucket feature disabled")
-
-
 
 # Flask module
 mod = Blueprint('main', __name__)
 
 
 api_prefix = '/api/v1'
-payload = {'private_token':'bec08h'}
+payload = {'private_token':private_token}
 
 def plain_containers(_list):
     container_list = []
@@ -79,7 +71,7 @@ def get_containers(plain=False,by_status=False):
 @if_logged_in()
 def home():
     """
-    home page function
+    Home page function, list containers
     """
     url = 'http://{}:{}{}'.format(app.config['ADDRESS'], app.config['PORT'],api_prefix)
     r = requests.get(url + '/containers',params=payload)
@@ -93,8 +85,6 @@ def home():
     for container in container_list:
         if container['state'] == 'stopped':
             clonable_containers.append(container['container'])
-        #~ containers_plain.append(container['container'])
-    
 
     context = {
         'containers': containers_plain,
@@ -106,7 +96,6 @@ def home():
         'storage_repos': storage_repos,
         'auth': AUTH,
     }
-    #~ print(lxc.ls())
     return render_template('index.html', **context)
 
 
@@ -114,7 +103,7 @@ def home():
 @if_logged_in()
 def about():
     """
-    about page
+    About page
     """
     url = 'http://{}:{}{}'.format(app.config['ADDRESS'], app.config['PORT'],api_prefix)
     h = requests.get(url + '/host',params=payload)
@@ -122,33 +111,26 @@ def about():
     containers_plain = get_containers(plain=True)
     
     host_info = h.json()
-    #~ containers_plain = []
     context = {
         'containers': containers_plain,
         'version':host_info['version'],
         'dist':host_info['distribution'],
         'host':host_info['hostname'],
     }
-    #~ return render_template('about.html', containers=lxc.ls(), version=lwp.check_version(), dist=lwp.name_distro(), host=socket.gethostname())
     return render_template('about.html', **context)
-    
+
+
 @mod.route('/<container>/edit', methods=['POST', 'GET'])
 @if_logged_in()
 def edit(container=None):
     """
-    edit containers page and actions if form post request
+    Edit containers page and actions if form post request
     """
     host_memory = lwp.host_memory_usage()
     info = lxc.info(container)
     cfg = lwp.get_container_settings(container, info['state'])
     if request.method == 'POST':
         form = request.form.copy()
-
-        #~ if form['bucket'] != get_bucket_token(container):
-            #~ g.db.execute("INSERT INTO machine(machine_name, bucket_token) VALUES (?, ?)", [container, form['bucket']])
-            #~ g.db.commit()
-            #~ flash(u'Bucket config for %s saved' % container, 'success')
-
         # convert boolean in correct value for lxc, if checkbox is inset value is not submitted inside POST
         form['flags'] = 'up' if 'flags' in form else 'down'
         form['start_auto'] = '1' if 'start_auto' in form else '0'
@@ -244,7 +226,7 @@ def lxc_net():
 @if_logged_in()
 def lwp_users():
     """
-    returns users and get posts request : can edit or add user in page.
+    Returns users and get posts request : can edit or add user in page.
     this funtction uses sqlite3
     """
     if session['su'] != 'Yes':
@@ -356,7 +338,7 @@ def lwp_users():
 @if_logged_in()
 def lwp_tokens():
     """
-    returns api tokens info and get posts request: can show/delete or add token in page.
+    Returns api tokens info and get posts request: can show/delete or add token in page.
     this function uses sqlite3, require admin privilege
     """
     if session['su'] != 'Yes':
@@ -387,19 +369,24 @@ def lwp_tokens():
 @if_logged_in()
 def checkconfig():
     """
-    returns the display of lxc-checkconfig command
+    Returns the display of lxc-checkconfig command
     """
     if session['su'] != 'Yes':
         return abort(403)
-
-    return render_template('checkconfig.html', containers=lxc.ls(), cfg=lxc.checkconfig(), dist=lwp.name_distro(), host=socket.gethostname())
+    context = {
+        'containers': lxc.ls(),
+        'cfg': lxc.checkconfig(),
+        'dist': lwp.name_distro(),
+        'host': socket.gethostname(),
+    }
+    return render_template('checkconfig.html', **context)
 
 
 @mod.route('/action', methods=['GET'])
 @if_logged_in()
 def action():
     """
-    manage all actions related to containers
+    Manage all actions related to containers
     lxc-start, lxc-stop, etc...
     """
     act = request.args['action']
@@ -580,9 +567,8 @@ def create_container():
 @if_logged_in()
 def snapshot_container():
     """
-    verify all forms to copy a container
+    Operations on snapshots, create, delete, restore
     """
-    
     operation_message = False
     if session['su'] != 'Yes':
         return abort(403)
@@ -612,9 +598,7 @@ def snapshot_container():
             if name == '':
                 flash(u'Please enter a container name!', 'error')
             else:
-                flash(u'Invalid name for \"%s\"!' % name, 'error')
-    
-    #~ return redirect(url_for('main.edit', container=name))
+                flash(u'Invalid name for \"%s\"!' % name, 'error')    
     snapshots = lxc.snapshots(name)
     return render_template('snapshots.html', container=name, snapshots=snapshots, operation_message=operation_message)
 
@@ -623,7 +607,7 @@ def snapshot_container():
 @if_logged_in()
 def copy_container():
     """
-    verify all forms to copy a container
+    Verify all forms to copy a container
     """
     if session['su'] != 'Yes':
         return abort(403)
@@ -669,14 +653,11 @@ def backup_container():
             if sr_type in sr:
                 sr_path = sr[1]
                 break
-
+                
         backup_failed = True
-
+        
         try:
             backup_file = lxc.backup(container=container, sr_type=sr_type, destination=sr_path)
-            #~ bucket_token = get_bucket_token(container)
-            #~ if push and bucket_token and USE_BUCKET:
-                    #~ os.system('curl http://{}:{}/{} -F file=@{}'.format(BUCKET_HOST, BUCKET_PORT, bucket_token, backup_file))
             backup_failed = False
         except lxc.ContainerDoesntExists:
             flash(u'The Container %s does not exist !' % container, 'error')
@@ -700,9 +681,12 @@ def backup_container():
 @mod.route('/_refresh_info')
 @if_logged_in()
 def refresh_info():
-    return jsonify({'cpu': lwp.host_cpu_percent(),
-                    'uptime': lwp.host_uptime(),
-                    'disk': lwp.host_disk_usage()})
+    context = {
+        'cpu': lwp.host_cpu_percent(),
+        'uptime': lwp.host_uptime(),
+        'disk': lwp.host_disk_usage()
+    }
+    return jsonify(**context)
 
 
 @mod.route('/_refresh_memory_<name>')
