@@ -7,18 +7,14 @@ from peewee import *
 
 #~ from playhouse.flask_utils import FlaskDB
 from lwp.config import read_config_file
+
 config = read_config_file()
-DATABASE = config.get('database', 'file')
-if DATABASE.startswith('/'):
-    DATABASE = 'sqlite:///{}'.format(DATABASE)
-#~ db = FlaskDB(app)
-#~ db = FlaskDB()
-#~ db = FlaskDB(app, DATABASE)
-#~ db.init_app(factory_init())
-#~ from peewee import *
-#~ database = SqliteDatabase('/var/lwp/lwp.db', **{})
-#~ db = SqliteDatabase(DATABASE)
-database = connect(DATABASE)
+
+if hasattr(config_file,'setup') and config_file.setup == True:
+    DATABASE = config.get('database', 'file')
+    if DATABASE.startswith('/'):
+        DATABASE = 'sqlite:///{}'.format(DATABASE)
+    database = connect(DATABASE)
 
 class UnknownField(object):
     def __init__(self, *_, **__): pass
