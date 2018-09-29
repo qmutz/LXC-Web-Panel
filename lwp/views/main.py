@@ -69,6 +69,7 @@ def get_containers(plain=False,by_status=False):
 @mod.route('/home')
 @if_logged_in()
 def home():
+    mod.logger.debug('this is a DEBUG message')
     """
     Home page function, list containers
     """

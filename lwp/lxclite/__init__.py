@@ -100,9 +100,10 @@ def snapshots(container):
             snap = {'name':splitted[0].decode('utf-8'),'date':'{} {}'.format(splitted[-2].decode('utf-8'),splitted[-1].decode('utf-8')),'path':splitted[1][1:-1].decode('utf-8')}
             
             if os.path.exists(os.path.join(snap['path'],snap['name'])):
-                size = _run('du -sh {}/{}'.format(snap['path'],snap['name']), output=True)
-                if size:
-                    snap['size'] = size.splitlines()[0].split(b'\t')[0].decode('utf-8')
+                pass
+                #size = _run('du -sh {}/{}'.format(snap['path'],snap['name']), output=True)
+                #if size:
+                    #snap['size'] = size.splitlines()[0].split(b'\t')[0].decode('utf-8')
             sn_list.append(snap)
     return sn_list
     

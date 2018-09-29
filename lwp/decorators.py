@@ -5,6 +5,7 @@ def if_logged_in(function=render_template, f_args=('login.html', )):
     """
     helper decorator to verify if a user is logged
     """
+    print("dec wtf")
     def decorator(handler):
         def new_handler(*args, **kwargs):
             if 'logged_in' in session:
