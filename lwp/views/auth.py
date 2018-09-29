@@ -29,6 +29,7 @@ mod = Blueprint('auth', __name__)
 
 @mod.route('/login', methods=['GET', 'POST'])
 def login():
+    mod.logger.debug('this is a DEBUG message')
     if request.method == 'POST':
         request_username = request.form['username']
         request_passwd = request.form['password']

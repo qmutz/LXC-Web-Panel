@@ -7,9 +7,9 @@ from lwp.config import read_config_file
 
 if __name__ == '__main__':
     if '--generate-session-secret' in sys.argv[1:]:
-        from lwp import SESSION_SECRET_FILE
+        from lwp.app import SESSION_SECRET_FILE
         key = os.urandom(24)
-        with os.fdopen(os.open(SESSION_SECRET_FILE, os.O_WRONLY | os.O_CREAT, 0o644), 'w') as handle:
+        with os.fdopen(os.open(SESSION_SECRET_FILE, os.O_WRONLY | os.O_CREAT, 0o644), 'bw') as handle:
             handle.write(key)
             exit(0)
 
