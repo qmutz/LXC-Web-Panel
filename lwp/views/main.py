@@ -28,7 +28,6 @@ else:
 # Flask module
 mod = Blueprint('main', __name__)
 
-
 api_prefix = '/api/v1'
 payload = {'private_token':private_token}
 
