@@ -26,6 +26,8 @@ setup(
         'PyOpenSSL',
         'peewee',
         'requests',
+        'marshmallow',
+        'python3-lxc',
     ],
     scripts=['bin/lwp'],
 )
