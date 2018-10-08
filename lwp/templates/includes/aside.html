@@ -1,11 +1,21 @@
+<div class="text-center sidebar-brand" style="padding-top:2em;padding-bottom:1em;margin-bottom:1em">
+    <a class="bg-primary text-white" href="{{ url_for('main.home') }}">
+        <i class="fas fa-ship fa-6x"></i><br>
+        <span>LWP</span>
+    </a>
+</div>
 <div class="list-group">
-    <a href="{{ url_for('main.home') }}" id="home-btn" class="list-group-item list-group-item-action{% if request.url_rule.endpoint=="main.home" %}active{% endif %}"><i class="fa fa-home"></i> Dashboard<i class="icon-refresh hide" id="home-load" style="float:right;margin-top:3px;"></i></a>
+    <a href="{{ url_for('main.home') }}" id="home-btn" class="text-center bg-primary text-white list-group-item list-group-item-action{% if request.url_rule.endpoint=="main.home" %}active{% endif %}"><i class="fas fa-tachometer-alt fa-2x"></i><br>Dashboard</a>
+    
+    <a href="{{ url_for('main.home') }}" id="proj-btn" class="text-center bg-primary text-white list-group-item list-group-item-action{% if request.url_rule.endpoint=="main.home" %}active{% endif %}"><i class="fas fa-vial fa-2x"></i><br>Projects</a>
+    
+    <a href="{{ url_for('main.home') }}" id="cont-btn" class="text-center bg-primary text-white list-group-item list-group-item-action{% if request.url_rule.endpoint=="main.home" %}active{% endif %}"><i class="fas fa-server fa-2x"></i><br>Containers</a>
+{#
 {% if containers != [] %}
     {% for c in containers %}
     <a href="{{ url_for('main.edit',container=c) }}" class="list-group-item list-group-item-action {% if request.endpoint=="main.edit" and container==c %}active{% endif %}"><i class="fa fa-hdd-o" aria-hidden="true"></i> {{c}}</a>
     {% endfor %}
 {% endif %}
-{#
 {% if session.su == 'Yes' %}
     <span class="list-group-item">LXC Settings</span>
     <a href="{{ url_for('main.lxc_net') }}" class="list-group-item list-group-item-action{% if request.url_rule.endpoint=="main.lxc_net" %} active{% endif %}"><i class="icon-globe"></i> Networking</a>
@@ -20,5 +30,10 @@
 #}
 
 </div>
-
+<div class="list-group" style="padding-top:2em;">
+    <a href="{{ url_for('main.lwp_users') }}" id="users-btn" class="text-center bg-primary text-white list-group-item list-group-item-action{% if request.url_rule.endpoint=="main.lwp_users" %}active{% endif %}"><i class="fas fa-user fa-2x"></i><br>Users</a>
+    <a href="{{ url_for('main.lwp_tokens') }}" id="tokens-btn" class="text-center bg-primary text-white list-group-item list-group-item-action{% if request.url_rule.endpoint=="main.lwp_tokens" %}active{% endif %}"><i class="fas fa-ticket-alt fa-2x"></i><br>Tokens</a>
+    <a href="{{ url_for('main.lxc_net') }}" id="checks-btn" class="text-center bg-primary text-white list-group-item list-group-item-action{% if request.url_rule.endpoint=="main.lxc_net" %}active{% endif %}"><i class="fas fa-exchange-alt fa-2x"></i><br>Network</a>
+    <a href="{{ url_for('main.checkconfig') }}" id="checks-btn" class="text-center bg-primary text-white list-group-item list-group-item-action{% if request.url_rule.endpoint=="main.home" %}active{% endif %}"><i class="fas fa-heartbeat fa-2x"></i><br>Checks</a>
+</div>
 <p class="muted credit"><small class="easteregg">LXC Web Panel &copy; 2018{% if 'logged_in' in session %} - <a href="{{ url_for('main.about') }}" class="muted">MIT License</a>{% endif %}</small></p>

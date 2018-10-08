@@ -1,45 +1,78 @@
 {% extends "layout.html" %}
 {% block title %}Users{% endblock %}
 {% block content %}
-    <div class="text-right">
-        <a class="btn btn-primary" data-toggle="modal" data-target="#newUser"><i class="icon-plus-sign icon-white"></i> Create</a>
-    </div>
-    <h2>Users </h2>
-    {{ super() }}
-    {% for user in users %}
-        <div class="card">
-            <div class="card-header" id="heading{{ user.id }}">
-                <a type="button" class="btn btn-danger delete btn-mini pull-right{% if (su_users.num < 2 and user.su == 'Yes') or nb_users.num <= 1 %} disabled{% endif %}" data-userid="{{ user.id }}" data-username="{{ user.username }}" style="margin: 7px 7px 0 0;"><i class="icon-trash icon-white"></i> Delete</a>
-                <a  class="btn btn-link" data-toggle="collapse" data-target="#collapse{{ user.id }}" aria-expanded="{% if session.username == user.username %}true{% else %}false{% endif %}" aria-controls="collapse{{ user.id }}" data-parent="#accordion" href="#{{ user.username }}">
-                      {% if user.name %}{{ user.name }} ({{ user.username }}){% else %}{{ user.username }}{% endif %}
-                    </a>
-            </div>
-            <div class="card-body">
-                <form method="post" id="editUser">
-                    <input type="hidden" name="username" value="{{ user.username }}">
-                    <label for="name">Name</label>
-                    <input class="form-control" type="text" name="name" value="{{ user.name }}" pattern="[a-z A-Z0-9]{3,32}" placeholder="Name">
-
-                    <div class="switch switch-small" data-on="success" data-on-label="<i class='icon-star icon-white'></i>" data-off-label="<i class='icon-user'></i>">
-                        <input type="checkbox" name="su" value="Yes"{% if user.su == 'Yes' %} checked{% endif %}{% if (su_users.num < 2) and (user.su == 'Yes') %} disabled {% endif %}>
-                    </div>
-                    <input class="form-control" type="password" name="password1" id="password1-{{ user.id }}" placeholder="Password">
-                    <input class="form-control" type="password" name="password2" placeholder="Re-type">
-                    <input type="hidden" name="newUser" value="False">
-                    <button type="submit" class="btn btn-primary">Update</button>
-                </form>
+<div class="col-lg-12">
+    <div class="card">
+        {{ super() }}
+        <div class="card-header">
+            <a class="float-right btn btn-primary" data-toggle="modal" data-target="#newUser">Create</a>
+            <h2>Users</h2>
+        </div>
+        <div class="card-body text-center">
+            <div class="card-text">
+                <p>Manage users allowed to acces LWP panel. API access is independent, <a href="{{ url_for('main.lwp_tokens') }}">check here</a>.</p>
             </div>
         </div>
-    {% endfor %}
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th>User</th>
+                <th>Su</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for user in users %}
+            <tr>
+                <td style="width:100%">
+                    #{{user.id}}<br>
+                    {{user.name}}
+                    {{ user.username }}
+                </td>
+                <td>{{ user.su }}</td>
+                <td>
+                    <a class="btn btn-secondary" data-toggle="collapse" href="#collapseEdit{{user.id}}" role="button" aria-expanded="false" aria-controls="collapseEdit{{user.id}}">
+                        Edit
+                    </a>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="4" style="border:0px;padding:none;">
+                    <div class="collapse" id="collapseEdit{{user.id}}">
+                        <a type="button" class="btn btn-danger delete float-right{% if (su_users|length < 2 and user.su == 'Yes') or users|length <= 1 %} disabled{% endif %}" data-userid="{{ user.id }}" data-username="{{ user.username }}">Delete
+                        </a>
+                        <form method="post" id="editUser">
+                            <input type="hidden" name="id" value="{{ user.id }}">
+                            <input type="hidden" name="username" value="{{ user.username }}">
+                            <label for="name">Name</label>
+                            <input class="form-control" type="text" name="name" value="{{ user.name }}" pattern="[a-z A-Z0-9]{3,32}" placeholder="Name">
+
+                            <label for="su">Is superuser</label>
+                                <input type="checkbox" name="su" value="Yes"{% if user.su == 'Yes' %} checked{% endif %}{% if (su_users|length < 2) %} disabled {% endif %}>
+                            
+                            <label for="password1">Password</label>
+                            <input class="form-control" type="password" name="password1" id="password1-{{ user.id }}" placeholder="Password">
+                            <input class="form-control" type="password" name="password2" placeholder="Re-type">
+                            <input type="hidden" name="newUser" value="False">
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-primary">Update</button>
+                            </div>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% include "includes/modal_new_user.html" %}
-{% if nb_users.num > 1 %}{% include "includes/modal_delete.html" %}{% endif %}
+{% if users|length > 1 %}{% include "includes/modal_delete.html" %}{% endif %}
 {% endblock %}
 {% block script %}
-    {% if nb_users.num > 1 %}
+    {% if users|length > 1 %}
         <script type="text/javascript">
             var token = '{{ session.token }}';
-
             $(document).ready(function(){
                 $(".delete").not('.disabled').on('click',function(e){
                     var _this = $(this);

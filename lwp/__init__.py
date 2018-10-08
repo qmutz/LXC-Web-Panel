@@ -205,7 +205,7 @@ def get_net_settings():
     config = ConfigParser()
     config.readfp(normalized)
     
-    cfg = {
+    settings = {
         'use': config.get('DEFAULT', 'USE_LXC_BRIDGE').strip('"'),
         'bridge': config.get('DEFAULT', 'LXC_BRIDGE').strip('"'),
         'address': config.get('DEFAULT', 'LXC_ADDR').strip('"'),
@@ -214,13 +214,12 @@ def get_net_settings():
         'range': config.get('DEFAULT', 'LXC_DHCP_RANGE').strip('"'),
         'max': config.get('DEFAULT', 'LXC_DHCP_MAX').strip('"')
     }
-
-    return cfg
+    return settings
 
 
 def get_container_settings(name, status=None):
     """
-    returns a dict of all utils settings for a container
+    Returns a dict of all utils settings for a container
     status is optional and should be set to RUNNING to retrieve ipv4 config (if unset)
     """
     from lwp.utils import cgroup_ext
@@ -230,27 +229,27 @@ def get_container_settings(name, status=None):
     normalized = NormalizeConfig(filename).read()
     config = ConfigParser()
     config.readfp(normalized)
-    cfg = {}
+    settings = {}
     # for each key in cgroup_ext add value to cfg dict and initialize values
     for options in cgroup_ext.keys():
         if config.has_option('DEFAULT', cgroup_ext[options][0]):
-            cfg[options] = config.get('DEFAULT', cgroup_ext[options][0])
+            settings[options] = config.get('DEFAULT', cgroup_ext[options][0])
         else:
-            cfg[options] = ''  # add the key in dictionary anyway to match form
+            settings[options] = ''  # add the key in dictionary anyway to match form
 
     # if ipv4 is unset try to determinate it
-    if cfg['ipv4'] == '' and status == 'RUNNING':
+    if settings['ipv4'] == '' and status == 'RUNNING':
         cmd = ['lxc-ls --fancy --fancy-format name,ipv4|grep -w \'%s\' | awk \'{ print $2 }\'' % name]
-        cfg['ipv4'] = subprocess.check_output(cmd, shell=True)
+        settings['ipv4'] = subprocess.check_output(cmd, shell=True)
         try:
-            cfg['ipv4'] = subprocess.check_output(cmd, shell=True).strip().decode('utf-8')
+            settings['ipv4'] = subprocess.check_output(cmd, shell=True).strip().decode('utf-8')
         except subprocess.CalledProcessError:
-            cfg['ipv4'] = ''
+            settings['ipv4'] = ''
 
     # parse memlimits to int
-    cfg['memlimit'] = re.sub(r'[a-zA-Z]', '', cfg['memlimit'])
-    cfg['swlimit'] = re.sub(r'[a-zA-Z]', '', cfg['swlimit'])
-    return cfg
+    settings['memlimit'] = re.sub(r'[a-zA-Z]', '', settings['memlimit'])
+    settings['swlimit'] = re.sub(r'[a-zA-Z]', '', settings['swlimit'])
+    return settings
 
 
 def push_net_value(key, value, filename='/etc/default/lxc-net'):

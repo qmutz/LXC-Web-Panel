@@ -29,66 +29,129 @@ else:
 mod = Blueprint('main', __name__)
 
 api_prefix = '/api/v1'
+
 payload = {'private_token':private_token}
 
+
+class GantryClient():
+    api_prefix = '/api/v1'
+    
+    def __init__(self, config):
+        self.address = app.config['ADDRESS']
+        self.port = app.config['PORT']
+        self.token = config['api']['token']
+        self.default_url = 'http://{}:{}{}'.format(self.address, self.port, self.api_prefix)
+        self.payload = {'private_token':self.token}
+        
+    def get_payload(self):
+        return self.payload.copy()
+        
+    def build_url(self, endpoint):
+        return '{}/{}/'.format(self.default_url, endpoint)
+        
+    def get_host(self):
+        r = requests.get(self.build_url('host'), params=self.get_payload())
+        return r.json()
+        
+    def get_checks(self):
+        r = requests.get(self.build_url('host/checks'), params=self.get_payload())
+        return r.json()
+        
+    def get_users(self, su=False):
+        payload = self.get_payload()
+        if su:
+            payload['su'] = True
+        r = requests.get(self.build_url('user'), params=payload)
+        return r.json()['data']
+        
+    def create_user(self, username, password, name=False, su=False):
+        data = {'username':username,'password':password}
+        if name:
+            data['name'] = name
+        if su:
+            data['su'] = su
+        r = requests.put(self.build_url('user'), params=self.get_payload(), json=data)
+        return r.json()
+        
+    def update_user(self, user_id, attribs):
+        data = attribs
+        r = requests.put(self.build_url('user/{}'.format(user_id)), params=self.get_payload(), json=data)
+        return r.status_code
+        
+    def delete_user(self, user_id):
+        r = requests.delete(self.build_url('user/{}'.format(user_id)), params=self.get_payload())
+        return r.status_code
+        
+    def get_tokens(self):
+        r = requests.get(self.build_url('token'),params=self.get_payload())
+        return r.json()['data']
+    
+    def delete_token(self, token):
+        data = {'token':token}
+        r = requests.delete(self.build_url('token'),params=self.get_payload(),json=data)
+        return r.status_code
+        
+    def add_token(self, token,description,username):
+        data = {'token':token,'description':description,'username':username}
+        r = requests.put(self.build_url('token'),params=self.get_payload(),json=data)
+        return r.status_code
+        
+        
 def plain_containers(_list):
     container_list = []
     for container in _list:
-        container_list.append(container['container'])
-    return container_list
+        container_list.append(container)
+    return container_list 
+
 
 def get_containers(plain=False,by_status=False):
-    url = 'http://{}:{}{}'.format(app.config['ADDRESS'], app.config['PORT'],api_prefix)
-    r = requests.get(url + '/containers',params=payload)
+    url = 'http://{}:{}{}'.format(app.config['ADDRESS'], app.config['PORT'], api_prefix)
+    r = requests.get(url + '/container/',params=payload)
     container_list = r.json()
     
-    STATUSES = ('RUNNING', 'FROZEN', 'STOPPED')
-    if plain:
-        plain_containers(container_list)
-        return plain_list
-    if by_status:
-        containers_status = []
-        for status in STATUSES:
-            containers_by_status = []
-            for container in container_list:
-                if container['state'] == status.lower():
-                    container_info = {
-                        'name': container['container'],
-                        'settings': lwp.get_container_settings(container['container'], status),
-                        'memusg': 0,
-                    }
-                    containers_by_status.append(container_info)
-            containers_status.append({
-                'status': status.lower(),
-                'containers': containers_by_status
-            })
-        return container_list, containers_status
+    #~ STATUSES = ('RUNNING', 'FROZEN', 'STOPPED')
+    #~ if plain:
+        #~ return plain_containers(container_list)
+    #~ if by_status:
+        #~ containers_status = []
+        #~ for status in STATUSES:
+            #~ containers_by_status = []
+            #~ for container in container_list:
+                #~ if container['state'] == status.lower():
+                    #~ container_info = {
+                        #~ 'name': container['container'],
+                        #~ 'settings': lwp.get_container_settings(container['container'], status),
+                        #~ 'memusg': 0,
+                    #~ }
+                    #~ containers_by_status.append(container_info)
+            #~ containers_status.append({
+                #~ 'status': status.lower(),
+                #~ 'containers': containers_by_status
+            #~ })
+        #~ return container_list, containers_status
     return container_list
 
 @mod.route('/')
 @mod.route('/home')
 @if_logged_in()
 def home():
-    mod.logger.debug('this is a DEBUG message')
     """
     Home page function, list containers
     """
-    url = 'http://{}:{}{}'.format(app.config['ADDRESS'], app.config['PORT'],api_prefix)
-    r = requests.get(url + '/containers',params=payload)
-    container_list = r.json()
-    h = requests.get(url + '/host',params=payload)
-    host_info = h.json()
-    containers_all = []
+    gantry = GantryClient(config)
+    host_info = gantry.get_host()
+    containers = get_containers()
+    
+    #~ containers_all = []
     clonable_containers = []
-    container_list, containers_status = get_containers(by_status=True)
-    containers_plain = plain_containers(container_list)
-    for container in container_list:
+    #~ container_list, containers_status = get_containers(by_status=True)
+    #~ containers_plain = plain_containers(container_list)
+    for container in containers:
         if container['state'] == 'stopped':
             clonable_containers.append(container['container'])
-
     context = {
-        'containers': containers_plain,
-        'containers_all': containers_status,
+        'containers': containers,
+        #~ 'containers_all': containers_status,
         'clonable_containers': clonable_containers,
         'dist': host_info['distribution'],
         'host': host_info['hostname'],
@@ -105,14 +168,9 @@ def about():
     """
     About page
     """
-    url = 'http://{}:{}{}'.format(app.config['ADDRESS'], app.config['PORT'],api_prefix)
-    h = requests.get(url + '/host',params=payload)
-    r = requests.get(url + '/containers',params=payload)
-    containers_plain = get_containers(plain=True)
-    
-    host_info = h.json()
+    gantry = GantryClient(config)
+    host_info = gantry.get_host()
     context = {
-        'containers': containers_plain,
         'version':host_info['version'],
         'dist':host_info['distribution'],
         'host':host_info['hostname'],
@@ -162,9 +220,21 @@ def edit(container=None):
         regex[k] = v[1]
 
     snapshots = lxc.snapshots(container)
-    return render_template('edit.html', all_info=info, snapshots=lxc.snapshots(container), containers=lxc.ls(), container=container, infos=infos,
-                           settings=cfg, host_memory=host_memory, storage_repos=storage_repos, regex=regex,
-                           clonable_containers=lxc.listx()['STOPPED'], dist=lwp.name_distro(), host=socket.gethostname())
+    context = {
+        'all_info': info,
+        'snapshots': snapshots,
+        'containers': lxc.ls(),
+        'container': container,
+        'infos': infos,
+        'settings': cfg,
+        'host_memory': host_memory,
+        'storage_repos': storage_repos,
+        'regex': regex,
+        'clonable_containers': lxc.listx()['STOPPED'],
+        'dist': lwp.name_distro(),
+        'host': socket.gethostname(),
+    }
+    return render_template('edit.html', **context)
 
 
 @mod.route('/settings/lxc-net', methods=['POST', 'GET'])
@@ -239,24 +309,20 @@ def lwp_users():
         trash = request.args.get('trash')
     except KeyError:
         trash = 0
-
-    su_users = query_db("SELECT COUNT(id) as num FROM users WHERE su='Yes'", [], one=True)
-
+    gantry = GantryClient(config)
+    users = gantry.get_users()
+    su_users = []
+    for u in users:
+        if u['su'] == 'Yes':
+            su_users.append(u)
     if request.args.get('token') == session.get('token') and int(trash) == 1 and request.args.get('userid') and \
             request.args.get('username'):
-        nb_users = query_db("SELECT COUNT(id) as num FROM users", [], one=True)
-
-        if nb_users['num'] > 1:
-            if su_users['num'] <= 1:
-                su_user = query_db("SELECT username FROM users WHERE su='Yes'", [], one=True)
-
-                if su_user['username'] == request.args.get('username'):
+        if len(users) > 1:
+            if len(su_users) == 1:
+                if su_users[0]['username'] == request.args.get('username'):
                     flash(u'Can\'t delete the last admin user : %s' % request.args.get('username'), 'error')
                     return redirect(url_for('main.lwp_users'))
-
-            g.db.execute("DELETE FROM users WHERE id=? AND username=?", [request.args.get('userid'),
-                                                                         request.args.get('username')])
-            g.db.commit()
+            gantry.delete_user(user_id=request.args.get('userid'))
             flash(u'Deleted %s' % request.args.get('username'), 'success')
             return redirect(url_for('main.lwp_users'))
 
@@ -264,25 +330,29 @@ def lwp_users():
         return redirect(url_for('main.lwp_users'))
 
     if request.method == 'POST':
-        users = query_db('SELECT id, name, username, su FROM users ORDER BY id ASC')
-
         if request.form['newUser'] == 'True':
             if not request.form['username'] in [user['username'] for user in users]:
                 if re.match('^\w+$', request.form['username']) and request.form['password1']:
                     if request.form['password1'] == request.form['password2']:
                         if request.form['name']:
                             if re.match('[a-z A-Z0-9]{3,32}', request.form['name']):
-                                g.db.execute("INSERT INTO users (name, username, password) VALUES (?, ?, ?)",
-                                             [request.form['name'], request.form['username'],
-                                              hash_passwd(request.form['password1'])])
-                                g.db.commit()
+                                gantry.create_user(
+                                    name=request.form['name'],
+                                    username=request.form['username'],
+                                    password=hash_passwd(request.form['password1'])
+                                )
                             else:
                                 flash(u'Invalid name!', 'error')
                         else:
-                            g.db.execute("INSERT INTO users (username, password) VALUES (?, ?)",
-                                         [request.form['username'], hash_passwd(request.form['password1'])])
-                            g.db.commit()
-
+                            gantry.create_user(
+                                username=request.form['username'],
+                                password=hash_passwd(request.form['password1'])
+                            )
+                        users = gantry.get_users()
+                        su_users = []
+                        for u in users:
+                            if u['su'] == Yes:
+                                su_users.append(u)
                         flash(u'Created %s' % request.form['username'], 'success')
                     else:
                         flash(u'No password match', 'error')
@@ -292,46 +362,42 @@ def lwp_users():
                 flash(u'Username already exist!', 'error')
 
         elif request.form['newUser'] == 'False':
-            if request.form['password1'] == request.form['password2']:
-                if re.match('[a-z A-Z0-9]{3,32}', request.form['name']):
-                    if su_users['num'] <= 1:
-                        su = 'Yes'
-                    else:
-                        try:
-                            su = request.form['su']
-                        except KeyError:
-                            su = 'No'
-
-                    if not request.form['name']:
-                        g.db.execute("UPDATE users SET name='', su=? WHERE username=?", [su, request.form['username']])
-                        g.db.commit()
-                    elif request.form['name'] and not request.form['password1'] and not request.form['password2']:
-                        g.db.execute("UPDATE users SET name=?, su=? WHERE username=?",
-                                     [request.form['name'], su, request.form['username']])
-                        g.db.commit()
-                    elif request.form['name'] and request.form['password1'] and request.form['password2']:
-                        g.db.execute("UPDATE users SET name=?, password=?, su=? WHERE username=?",
-                                     [request.form['name'], hash_passwd(request.form['password1']), su,
-                                      request.form['username']])
-                        g.db.commit()
-                    elif request.form['password1'] and request.form['password2']:
-                        g.db.execute("UPDATE users SET password=?, su=? WHERE username=?",
-                                     [hash_passwd(request.form['password1']), su, request.form['username']])
-                        g.db.commit()
-
-                    flash(u'Updated', 'success')
+            if re.match('[a-z A-Z0-9]{3,32}', request.form['name']):
+                if len(su_users) <= 1:
+                    su = 'Yes'
                 else:
-                    flash(u'Invalid name!', 'error')
+                    try:
+                        su = request.form['su']
+                    except KeyError:
+                        su = 'No'
+                update_user = {
+                    'user_id':request.form['id'],
+                    'username':request.form['username'],
+                    'name':request.form.get('name',request.form['username']),
+                    'su': su,
+                }
+                if request.form['password1'] and request.form['password2'] and request.form['password1'] == request.form['password2']:
+                    update_user['password'] = hash_passwd(request.form['password1'])
+                elif request.form['password1'] and request.form['password2'] and request.form['password1'] != request.form['password2']:
+                    flash(u'No password match. Not changed', 'error')
+                print(update_user)
+                gantry.update_user(request.form['id'],update_user)
+                users = gantry.get_users()
+                su_users = []
+                for u in users:
+                    if u['su'] == Yes:
+                        su_users.append(u)
+                flash(u'Updated', 'success')
             else:
-                flash(u'No password match', 'error')
+                flash(u'Invalid name!', 'error')
+            
         else:
             flash(u'Unknown error!', 'error')
-
-    users = query_db("SELECT id, name, username, su FROM users ORDER BY id ASC")
-    nb_users = query_db("SELECT COUNT(id) as num FROM users", [], one=True)
-    su_users = query_db("SELECT COUNT(id) as num FROM users WHERE su='Yes'", [], one=True)
-
-    return render_template('users.html', containers=lxc.ls(), users=users, nb_users=nb_users, su_users=su_users, dist=lwp.name_distro(), host=socket.gethostname())
+    context = {
+        'users': users,
+        'su_users': su_users,
+    }
+    return render_template('users.html', **context)
 
 
 @mod.route('/lwp/tokens', methods=['POST', 'GET'])
@@ -343,26 +409,38 @@ def lwp_tokens():
     """
     if session['su'] != 'Yes':
         return abort(403)
-
+    gantry = GantryClient(config)
+    tokens = gantry.get_tokens()
     if request.method == 'POST':
         if request.form['action'] == 'add':
             # we want to add a new token
             token = request.form['token']
             description = request.form['description']
             username = session['username']  # we should save the username due to ldap option
-            g.db.execute("INSERT INTO api_tokens (username, token, description) VALUES(?, ?, ?)", [username, token,
-                                                                                                   description])
-            g.db.commit()
+            #~ ApiTokens.create(username=username,description=description,token=token)
+            gantry.add_token(token,description,username)
+            #~ g.db.execute("INSERT INTO api_tokens (username, token, description) VALUES(?, ?, ?)", [username, token,
+                                                                                                   #~ description])
+            #~ g.db.commit()
+            tokens = gantry.get_tokens()
             flash(u'Token %s successfully added!' % token, 'success')
 
     if request.args.get('action') == 'del':
         token = request.args['token']
-        g.db.execute("DELETE FROM api_tokens WHERE token=?", [token])
-        g.db.commit()
+        gantry.delete_token(token)
+        #~ g.db.execute("DELETE FROM api_tokens WHERE token=?", [token])
+        #~ g.db.commit()
+        tokens = gantry.get_tokens()
         flash(u'Token %s successfully deleted!' % token, 'success')
-
-    tokens = query_db("SELECT description, token, username FROM api_tokens ORDER BY token DESC")
-    return render_template('tokens.html', containers=lxc.ls(), tokens=tokens, dist=lwp.name_distro(), host=socket.gethostname())
+        return redirect(url_for('main.lwp_tokens'))
+    #~ tokens = query_db("SELECT description, token, username FROM api_tokens ORDER BY token DESC")
+    #~ tokens = get_tokens()
+    context = {
+        'tokens': tokens,
+        
+    }
+    return render_template('tokens.html', **context)
+    #~ return render_template('tokens.html', containers=lxc.ls(), tokens=tokens, dist=lwp.name_distro(), host=socket.gethostname())
 
 
 @mod.route('/checkconfig')
@@ -373,11 +451,17 @@ def checkconfig():
     """
     if session['su'] != 'Yes':
         return abort(403)
+    gantry = GantryClient(config)
+    host = gantry.get_host()
+    checks = gantry.get_checks()
+    print(checks)
     context = {
-        'containers': lxc.ls(),
-        'cfg': lxc.checkconfig(),
-        'dist': lwp.name_distro(),
-        'host': socket.gethostname(),
+        'host': host,
+        'checks': checks['checks'],
+        #~ 'containers': lxc.ls(),
+        #~ 'cfg': lxc.checkconfig(),
+        #~ 'dist': lwp.name_distro(),
+        #~ 'host': socket.gethostname(),
     }
     return render_template('checkconfig.html', **context)
 
@@ -708,4 +792,5 @@ def refresh_memory_containers(name=None):
 @mod.route('/_check_version')
 @if_logged_in()
 def check_version():
+    print(lwp.check_version())
     return jsonify(lwp.check_version())

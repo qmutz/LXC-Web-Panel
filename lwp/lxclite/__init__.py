@@ -257,6 +257,7 @@ def checkconfig():
     Returns the output of lxc-checkconfig (colors cleared)
     """
     out = _run('lxc-checkconfig', output=True)
+    #~ print(out)
     if out:
         rtr = out.replace(b'[1;32m', b'').replace(b'[1;33m', b'').replace(b'[0;39m', b'').replace(b'[1;32m', b'').replace(b'\x1b', b'').replace(b': ', b':').split(b'\n')
         return [x.decode('utf8') for x in rtr]

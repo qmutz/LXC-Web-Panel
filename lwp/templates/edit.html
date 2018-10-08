@@ -2,55 +2,61 @@
 {% block title %}{{container|capitalize}}{% endblock %}
 {% block content %}
 
-{{ super() }}
 {% set span = {'RUNNING':'success','FROZEN':'info','STOPPED':'important'} %}
 {% set start_action = {'STOPPED':'start','FROZEN':'unfreeze'} %}
-<div class="card">
-    <div class="card-body">
-        <div class="row">
-            <div class="col-lg-12">
-                <h3 class="head">
-                    {% if infos['status']== 'RUNNING' %}
-                        <i class="fa fa-circle text-success" aria-hidden="true"></i>&nbsp;
-                    {% elif infos['status'] == 'FROZEN' %}
-                        <i class="fa fa-circle text-warning" aria-hidden="true"></i>&nbsp;
-                    {% else %}
-                        <i class="fa fa-circle-thin text-danger" aria-hidden="true"></i>&nbsp;
-                    {% endif %}
-                    {{container}} &bull; {{ settings.utsname }}
-                &nbsp;{% if settings.ipv4  %}{{settings.ipv4}}{% endif %}
-                {% if settings.flags == 'up' %}<span class="badge badge-success">Up</span>{% else %}<span class="badge badge-error">Down</span>{% endif %}
-                
-                <div class="pull-right">
-                    {% if infos['status'] == 'RUNNING' %}
-                    <span class="btn btn-link btn-block">{{ infos['status'] }}
-                    {% else %}
+<div class="col-lg-8">
+    {{ super() }}
+    <h3 class="head">
+        {% if infos['status']== 'RUNNING' %}
+            <i class="fas fa-circle text-success" aria-hidden="true"></i>&nbsp;
+        {% elif infos['status'] == 'FROZEN' %}
+            <i class="fas fa-circle text-warning" aria-hidden="true"></i>&nbsp;
+        {% else %}
+            <i class="fas fa-circle text-danger" aria-hidden="true"></i>&nbsp;
+        {% endif %}
+        {{container}} &bull; {{ settings.utsname }}
+    </h3>
+    <p style="padding-left:2em">{{settings.ipv4}}
+       IPv4 {% if settings.flags == 'up' %}<i class="fas fa-circle text-success" aria-hidden="true"></i>{% else %}<i class="fas fa-circle text-muted" aria-hidden="true"></i>{% endif %}{% if settings.ipv4  %}{{settings.ipv4}}{% endif %}
+       / CPU {% if settings.cpus %}{{ settings.cpus }}{% else %}All{% endif %}
+       / Memory <span id="{{ container }}">{% if infos.memusg %}{{ render_memory_wrapper(infos.memusg) }}/{% endif %}{% if settings.memlimit %}{{ settings.memlimit }}{% else %}{{ host_memory.total }}{% endif %}&nbsp;&nbsp;</span>
+        / Arch. {{ settings.arch }}
+        
+    </p>
+</div>
+<div class="col-lg-4">
+    <div class="text-right">
+        <div class="btn-toolbar">
+            <div class="btn-group">
+                {% if infos.status != 'STOPPED' %}
                     
-                    <!--<a class="btn btn-block btn-primary{% if infos['status'] == 'RUNNING' %} disabled{% endif %}" {% if infos['status'] == 'STOPPED' or infos['status'] == 'FROZEN' %}href="{{ url_for('main.action', name=container, action=start_action[infos['status']], from='edit') }}"{% endif %}>
-                        <i class="icon-play"></i> Start
-                    </a>-->
-                    <a id="start-container" class="btn btn-primary" ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content" {% if infos['status'] == 'STOPPED' or infos['status'] == 'FROZEN' %}ic-get-from="{{ url_for('main.action', name=container, action=start_action[infos['status']], from='edit') }}"{% endif %}>
-                        Start<i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
-                    </a>
-                    {% endif %}
-                    {% if infos.status != 'STOPPED' %}<span class="badge"><strong>Pid :</strong> {{ infos.pid }}</span>{% endif %}
-                </div>
-                </h3>
+                    <span class="btn btn-link"><strong>Pid :</strong> {{ infos.pid }}</span>
+                {% endif %}
                 
+                {% if infos['status'] == 'RUNNING' %}
+                    <span class="btn btn-link">{{ infos['status'] }}</span>
+                {% else %}
+                    <a id="start-container" class="btn btn-primary" ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content" {% if infos['status'] == 'STOPPED' or infos['status'] == 'FROZEN' %}ic-get-from="{{ url_for('main.action', name=container, action=start_action[infos['status']], from='edit') }}"{% endif %}>
+                    Start<i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
+                    </a>
+                {% endif %}
+                
+                <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if infos['status'] == 'STOPPED' %} disabled{% endif %}" {% if infos['status'] == 'RUNNING' or infos['status'] == 'FROZEN' %}ic-get-from="{{ url_for('main.action', name=container, action='stop', from='edit') }}"{% endif %}>
+                    Stop <i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
+                </a>
+                <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if infos['status'] == 'FROZEN' or infos['status'] == 'STOPPED' %} disabled{% endif %}" {% if infos['status'] == 'RUNNING' %}ic-get-from="{{ url_for('main.action', name=container, action='freeze', from='edit') }}"{% endif %}>
+                    Freeze <i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
+                </a>
             </div>
         </div>
-        <hr>
+    </div>
+</div>
+<div class="col-lg-12">
         <div class="row">
             <div class="col-lg-9">
                 <ul class="nav nav-pills">
                     <li>
-                        {% if settings.start_auto == '1' %}
-                            <span class="btn btn-outline-primary">Start on boot
-                            {{ settings.start_delay }} {{ settings.start_order }}
-                            </span>
-                        {% else %}
-                            <span class="btn btn-outline-disabled">Start on boot</span>
-                        {% endif %}
+
                     </li>
                     {% if infos.status == "STOPPED" %}
                         <li><a class="btn btn-outline-primary" data-toggle="modal" data-target="#copyCT{{container}}">Copy</a></li>
@@ -82,29 +88,19 @@
                         Snapshots
                     </li>
                 </ul>
-                
             </div>
-            <div class="col-lg-3">
-                <div class="btn-toolbar">
-                    <div class="btn-group">
 
-                        <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if infos['status'] == 'STOPPED' %} disabled{% endif %}" {% if infos['status'] == 'RUNNING' or infos['status'] == 'FROZEN' %}ic-get-from="{{ url_for('main.action', name=container, action='stop', from='edit') }}"{% endif %}>
-                            Stop <i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
-                        </a>
-                        <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if infos['status'] == 'FROZEN' or infos['status'] == 'STOPPED' %} disabled{% endif %}" {% if infos['status'] == 'RUNNING' %}ic-get-from="{{ url_for('main.action', name=container, action='freeze', from='edit') }}"{% endif %}>
-                            Freeze <i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
-    
-
-    <ul class="nav nav-pills nav-fill" id="myTab" role="tablist">
+</div><!-- end main col -->
+</div><!-- end main row -->
+<div class="row" style="margin-top:2em;">
+<div class="col-lg-2">
+    <ul class="nav flex-column nav-pills" id="containerTabs" role="tablist" aria-orientation="vertical">
       <li class="nav-item">
-        <a class="nav-link active" id="boot-tab" data-toggle="tab" href="#boot" role="tab" aria-controls="home" aria-selected="true">Boot</a>
+        <a class="nav-link active" id="info-tab" data-toggle="tab" href="#info" role="tab" aria-controls="info" aria-selected="true">Information</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="boot-tab" data-toggle="tab" href="#boot" role="tab" aria-controls="boot" aria-selected="true">Boot</a>
       </li>
       <li class="nav-item">
         <a class="nav-link" id="network-tab" data-toggle="tab" href="#network" role="tab" aria-controls="network" aria-selected="false">Network</a>
@@ -124,11 +120,22 @@
       </li>
       #}
     </ul>
+</div>
+<div class="col-lg-10">
     <div class="tab-content" id="myTabContent">
         {#
             <form id="config" action="{{ url_for('main.edit', container=container) }}" method="post">
         #}
-        <div class="tab-pane fade show active" id="boot" role="tabpanel" aria-labelledby="boot-tab">
+        <div class="tab-pane fade show active" id="info" role="tabpanel" aria-labelledby="info-tab">
+            <p>
+                <ul class="list-group">
+                  <li class="list-group-item">Start on boot  {% if settings.start_auto == '1' %}Enabled{% else %}Disabled{% endif %}</li>
+                  <li class="list-group-item">{{ settings.start_delay }} {{ settings.start_order }}</li>
+                  <li class="list-group-item">Vestibulum at eros</li>
+                </ul>            
+            </p>
+        </div>
+        <div class="tab-pane fade show" id="boot" role="tabpanel" aria-labelledby="boot-tab">
             <div class="card">
                 <form ic-post-to="{{ url_for('main.edit', container=container) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
                 <div class="card-body">
@@ -255,6 +262,7 @@
         </div>
         <div class="tab-pane fade" id="logging" role="tabpanel" aria-labelledby="logging-tab">
             <div class="card">
+                <div class="card-header"><h3>Logging</h3></div>
                 <form ic-post-to="{{ url_for('main.edit', container=container) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
                 <div class="card-body">
                     <div class="form-group">
@@ -270,12 +278,12 @@
                             <option value="7" {% if settings.loglevel == '7' %}selected{% endif %}>alert</option>
                             <option value="8" {% if settings.loglevel == '8' %}selected{% endif %}>fatal</option>
                         </select>
-                        <span class="help-inline"><small>Default log level: 5 - error</small></span>
+                        <small class="text-muted">Default log level: 5 - error</small>
                     </div>
                     <div class="form-group">
                         <label for="logfile">Log file</label>
                         <input class="form-control" type="text" pattern="{{ regex.logfile }}" id="logfile" name="logfile" value="{{ settings.logfile }}">
-                        <span class="help-inline"><small></small></span>
+                        <small class="text-muted"></small>
                     </div>
                 </div>
                 {% include 'includes/edit_apply_btn.html' %}
@@ -299,6 +307,7 @@
                 </div>
             </div>
         </div>
+</div>
         {#
         <div class="tab-pane fade" id="misc" role="tabpanel" aria-labelledby="misc-tab">
             <div class="card">
@@ -312,7 +321,7 @@
             </div>
         </div>
         #}
-    </div>
+        
 
 <!--
     <p class="text-right">

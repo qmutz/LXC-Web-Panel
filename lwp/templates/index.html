@@ -1,11 +1,12 @@
-{% set td = {'running':'success','frozen':'info','stopped':'important'} %}
-{% set tr = {'running':'success','frozen':'info','stopped':'error'} %}
-{% set disabled = {'running':'success','frozen':'info','stopped':'important'} %}
+{% set td = {'RUNNING':'success','frozen':'info','stopped':'important'} %}
+{% set tr = {'RUNNING':'success','frozen':'info','stopped':'error'} %}
+{% set disabled = {'RUNNING':'success','frozen':'info','stopped':'important'} %}
 {% extends "layout.html" %}
 {% block title %}Overview{% endblock %}
 {% block content %}
+<div class="col-lg-12">
+{{ super() }}
 
-    {{ super() }}
 <div class="card">
     <div class="card-body">
         <div class="row">
@@ -48,78 +49,107 @@
         </div>
     </div>
 </div>
-    
+<div class="card-deck" style="margin-top:60px">
+    <div class="card card-border-secondary">
+        <div class="card-header"><h5 class="card-title">Projects</h5></div>
+        <div class="card-body">
+            <p class="card-text">
+                <span class="" style="font-size:3em">0</span>This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.
+                {% if session.su == 'Yes' %}
+                    <a class="btn btn-secondary btn-lg" data-toggle="modal" data-target="#createCT">
+                         New Project
+                    </a>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    <div class="card card-border-secondary">
+        <div class="card-header"><h5 class="card-title">Containers</h5></div>
+        <div class="card-body">
+            <h5 class="card-title">Containers</h5>
+            <p class="card-text">
+                <span class="" style="font-size:3em">{{containers_all|length}}</span>
+                This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.
+            </p>
+        </div>
+    </div>
+</div>
 <div class="card card-border-secondary" style="margin-top:60px">
     <table class="table">
         <thead>
             <tr>
                 <th>Name</th>
-                <th>Mem. usage</th>
-                <th>Start<br> on boot</th>
+                <th>State</th>
+                {#<th>Start<br> on boot</th>#}
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
-        {% for status in containers_all %}
-            
-                {% for container in status.containers %}
-                    <tr class="{{ tr[status.status] }}">
-                        {# {% if loop.first %}<td rowspan="{{ status.containers|count }}" class="hidden-phone"><span class="label label-{{ td[status.status] }}">{{ status.status|capitalize }}</span></td>{% endif %} #}
-                        <td>
-                            <a href="{{ url_for('main.edit',container=container.name) }}" title="Click to edit {{container.name}}">
+        {% for container in containers %}
+                <tr class="{{ tr[container.state] }}">
+                    <td style="width:55%">
+                        <a href="{{ url_for('main.edit',container=container.name) }}" title="Click to edit {{container.name}}">
                             <h4>
-                            {% if status.status == 'running' %}
-                            <i class="fa fa-circle text-success" aria-hidden="true"></i>&nbsp;
-                            {% elif status.status == 'frozen' %}
-                            <i class="fa fa-circle text-warning" aria-hidden="true"></i>&nbsp;
-                            {% else %}
-                            <i class="fa fa-circle-thin text-danger" aria-hidden="true"></i>&nbsp;
-                            {% endif %}
-                            {{container.name}}<br>
-                            {{container.settings.utsname}} - {% if container.settings.ipv4  %}{{container.settings.ipv4}}{% else %}-{% endif %}
-                            </a>
+                                {{container.name}}
                             </h4>
-                        </td>
-                        <td id="{{container.name}}">{{ render_memory_wrapper(container.memusg, container.settings.memlimit) }}</td>
-                        <td class="hidden-phone">
-                            {% if container.settings.start_auto == '1' %}
-                                <i class="fa fa-check"></i>
-                                {% if container.settings.start_order %} {{ container.settings.start_order }} {% endif %}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="btn-toolbar justify-content-between" role="toolbar">
-                                <div class="btn-group btn-group-toggle">
-                                    {% set start_action = {'stopped':'start','frozen':'unfreeze'} %}
-                                    <a class="btn btn-secondary{% if status.status == 'running' %} disabled{% endif %}"{% if status.status == 'stopped' or status.status == 'frozen' %} href="{{ url_for('main.action', name=container.name, action=start_action[status.status]) }}"{% endif %}><i class="icon-play"></i> Start</a>
-                                    <a class="btn btn-secondary{% if status.status == 'stopped' %} disabled{% endif %}"{% if status.status == 'running' or status.status == 'frozen' %} href="{{ url_for('main.action', name=container.name, action='stop') }}"{% endif %}><i class="icon-stop"></i> Stop</a>
-                                    <a class="btn btn-secondary{% if status.status == 'frozen' or status.status == 'stopped' %} disabled{% endif %} hidden-phone"{% if status.status == 'running' %} href="{{ url_for('main.action', name=container.name, action='freeze') }}"{% endif %}><i class="icon-pause"></i> Freeze</a>
+                            <p>
+                                {{container.settings.utsname}} - {% if container.settings.ipv4  %}{{container.settings.ipv4}}{% else %}-{% endif %}
+                            </p>
+                        </a>
+                    </td>
+                    <td>
+                        <div  style="vertical-algin:middle;text-align:center;">
+                        {% if container.state == 'RUNNING' %}
+                            <i class="fas fa-circle text-success" aria-hidden="true"></i>&nbsp;
+                            <br>
+                            <span id="{{container.name}}">{{ render_memory_wrapper(container['runtime']['memory.usage_in_bytes'], container['runtime']['memory.limit_in_bytes']) }}</span>
+                        {% elif container.state == 'FROZEN' %}
+                            <i class="fas fa-pause-circle text-warning" aria-hidden="true"></i>&nbsp;
+                        {% else %}
+                            <i class="fas fa-stop-circle text-danger" aria-hidden="true"></i>&nbsp;
+                        {% endif %}
 
-                                </div>
+                        </div>
+                    </td>
+                    {#
+                    <td class="hidden-phone">
+                        {% if container.settings.start_auto == '1' %}
+                            <i class="fa fa-check"></i>
+                            {% if container.settings.start_order %} {{ container.settings.start_order }} {% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    #}
+                    <td>
+                        <div class="btn-toolbar justify-content-between" role="toolbar">
+                            <div class="btn-group btn-group-toggle">
+                                {% set start_action = {'stopped':'start','frozen':'unfreeze'} %}
+                                <a class="btn btn-secondary{% if container.state == 'RUNNING' %} disabled{% endif %}"{% if container.state == 'stopped' or container.state == 'frozen' %} href="{{ url_for('main.action', name=container.name, action=start_action[container.state]) }}"{% endif %}><i class="icon-play"></i> Start</a>
+                                <a class="btn btn-secondary{% if container.state == 'stopped' %} disabled{% endif %}"{% if container.state == 'RUNNING' or container.state == 'frozen' %} href="{{ url_for('main.action', name=container.name, action='stop') }}"{% endif %}><i class="icon-stop"></i> Stop</a>
+                                <a class="btn btn-secondary{% if container.state == 'frozen' or container.state == 'stopped' %} disabled{% endif %} hidden-phone"{% if container.state == 'RUNNING' %} href="{{ url_for('main.action', name=container.name, action='freeze') }}"{% endif %}><i class="icon-pause"></i> Freeze</a>
                                 <div class="dropdown">
-                                  <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                        <i class="fa fa-ellipsis-h fa-2x" aria-hidden="true"></i>
+                                  <button class="btn btn-link dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <i class="fas fa-ellipsis-h fa-2x" aria-hidden="true"></i>
                                   </button>
                                   <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                                        <a class="dropdown-item" data-toggle="modal" data-target="#copyCT{{container.name}}">Copy</a>
-                                        <a class="dropdown-item" data-toggle="modal" data-target="#backupCT{{container.name}}">Backup</a>
-                                        <a class="dropdown-item" data-container-name="{{container.name}}">Snapshot</a>
-                                        <a class="dropdown-item text-danger destroy" {% if session.su == 'Yes' and status.status == 'stopped' %}data-container-name="{{container.name}}"{% endif %}>
+                                        <a href="#" class="dropdown-item" data-toggle="modal" data-target="#copyCT{{container.name}}">Copy</a>
+                                        <a href="#" class="dropdown-item" data-toggle="modal" data-target="#backupCT{{container.name}}">Backup</a>
+                                        <a href="#" class="dropdown-item" data-container-name="{{container.name}}">Snapshot</a>
+                                        <a href="#" class="dropdown-item text-danger destroy" {% if session.su == 'Yes' and container.state == 'stopped' %}data-container-name="{{container.name}}"{% endif %}>
                                         Destroy
                                         </a>
                                   </div>
-                                </div>
+
                             </div>
-                            {% with container_name=container.name %}
-                            {% include "includes/modal_clone.html" %}
-                            {% include "includes/modal_backup.html" %}
-                            {% endwith %}
-                        </td>
-                    </tr>
-                {% endfor %}
-            
+                            </div>
+                        </div>
+                        {% with container_name=container.name %}
+                        {% include "includes/modal_clone.html" %}
+                        {% include "includes/modal_backup.html" %}
+                        {% endwith %}
+                    </td>
+                    </tr>            
         {% endfor %}
         </tbody>
     </table>
@@ -273,4 +303,5 @@
                     })
             });{% endif %}
 </script>
+</div>
 {% endblock %}

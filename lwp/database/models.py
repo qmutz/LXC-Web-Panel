@@ -34,7 +34,10 @@ class ApiTokens(BaseModel):
     description = CharField(null=True)
     token = CharField()
     username = CharField(null=True)
-
+    
+    def __str__(self):
+        return '%s: %s' % (self.description, self.token)
+        
     class Meta:
         table_name = 'api_tokens'
         primary_key = False

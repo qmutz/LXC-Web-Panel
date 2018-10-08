@@ -1,12 +1,20 @@
-<span class="badge badge-success"><i class="fa fa-check"></i> Enabled</span>
-<span class="badge badge-warning"><i class="fa fa-exclamation"></i> Missing</span>
-<span class="badge badge-danger"><i class="fa fa-times"></i> Required</span>
 <div class="card card-border-secondary">
+    <h2 class="card-header">Configuration checks</h2>
+    <div class="card-body">
+        <div class="card-subtitle">Legend</div>
+        <div class="card-text">
+            <p>Check if your system is properly set up to run Linux Containers and LWP</p>
+            <span class="badge badge-success"><i class="fa fa-check"></i> Enabled</span>
+            <span class="badge badge-warning"><i class="fa fa-exclamation"></i> Missing</span>
+            <span class="badge badge-danger"><i class="fa fa-times"></i> Required</span>
+        </div>
+    </div>
     <table class="table table-hover">
         <tbody>
-        {% for i in cfg %}{% if i.split(':')[1] == 'enabled' or i.split(':')[1] == 'missing' or i.split(':')[1] == 'required' or '---' in i %}
+        {% for i in checks %}
+        {% if i.split(':')[1] == 'enabled' or i.split(':')[1] == 'missing' or i.split(':')[1] == 'required' or '---' in i %}
         <tr>
-            <td>{% if '---' in i %}<strong>{{ i.split(':')[0] }}</strong>{% else %}{{ i.split(':')[0] }}{% endif %}</td>
+            <td>{% if '---' in i %}<h3>{{ i.split(':')[0].replace('---','') }}</h3>{% else %}{{ i.split(':')[0] }}{% endif %}</td>
             <td width="15px"><i class="{% if i.split(':')[1] == 'enabled' %}fa fa-check text-success{% elif i.split(':')[1] == 'missing' %}fa fa-exclamation text-warning{% elif i.split(':')[1] == 'required' %}fa fa-times text-danger{% endif %}"></i></td>
         </tr>
         {% endif %}{% endfor %}

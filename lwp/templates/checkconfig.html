@@ -1,16 +1,21 @@
 {% extends "layout.html" %}
-{% block title %}Config{% endblock %}
+{% block title %}LXC Configuration Checking{% endblock %}
 {% block content %}
-{% if cfg %}
+{% if checks %}
 {{ super() }}
-{% include 'includes/checkconfig_table.html' %}
+<div class="col-lg-12">
+    {% include 'includes/checkconfig_table.html' %}
 {% else %}
-<div class="alert alert-error alert-block dont-hide span6" id="alert">
-    <button type="button" class="close" data-dismiss="alert">&times;</button>
-    <h4>Error!</h4>
-    <p><strong>Install kernel headers and try again...</strong><small class="pull-right"><code>apt-get install linux-headers-$(uname -r)</code></small></p>
-</div>
+    <div class="alert alert-error alert-block" id="alert">
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+        <h4>Error!</h4>
+        <p>
+            <strong>Install kernel headers and try again...</strong>
+            <small class="pull-right"><code>apt-get install linux-headers-$(uname -r)</code></small>
+        </p>
+    </div>
 {% endif %}
+</div>
 
 
 {% endblock %}

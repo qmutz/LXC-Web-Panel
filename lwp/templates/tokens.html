@@ -1,47 +1,58 @@
 {% extends "layout.html" %}
 {% block title %}Token management{% endblock %}
 {% block content %}
+<div class="col-lg-12">
 <div class="card">
     {{ super() }}
-    <p>On this page you can review, add and revoke API tokens.</p>
-    <div class="card-content">
-    <table class="table table-hover">
-        <thead>
-        <tr>
-            <th>Token</th>
-            <th>Description</th>
-            <th>Authorized by</th>
-            <th></th>
-        </tr>
-        </thead>
-        <tbody>
-        {% for token in tokens %}
-        <tr>
-            <td>{{ token.token }}</td>
-            <td>{{ token.description }}</td>
-            <td>{{ token.username }} </td>
-            <td><a href="{{ url_for('main.lwp_tokens') }}?action=del&token={{ token.token }}"><i class="icon-remove-circle"></i></a></td>
-        </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-
-    <form class="form-inline" action="{{ url_for('main.lwp_tokens') }}" method="post" name="lwp_token">
-        <input type="text" id="token" name="token" class="input-medium" placeholder="token" required>
-        <button id="generate" class="btn" name="generate"><i class="icon-refresh"></i></button>
-        <input type="text" name="description" class="input-large" placeholder="description" name="description">
-        <input type="hidden" name="action" value="add">
-        <button type="submit" class="btn btn-success">Add token</button>
-    </form>
+    <h2 class="card-header">Tokens</h2>
+    <div class="card-body text-center">
+        <div class="card-text">
+            <p>On this page you can review, add and revoke API tokens.</p>
+        </div>
+        <form class="form-inline text-center" action="{{ url_for('main.lwp_tokens') }}" method="post" name="lwp_token">
+            <input type="text" id="token" name="token" class="form-control" placeholder="token" required>
+            <button id="generate" class="btn" name="generate">Generate</button>
+            <input type="text" name="description" class="form-control" placeholder="description" name="description">
+            <input type="hidden" name="action" value="add">
+            <button type="submit" class="btn btn-success">Add token</button>
+        </form>
+        <hr>
+        <table class="table table-hover">
+            <thead>
+            <tr>
+                <th>Token</th>
+                <th>Description</th>
+                <th>Authorized by</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for token in tokens %}
+            <tr>
+                <td>
+                    #{{token.id}}<br>
+                    {{token.token[:3]}}...{{token.token[-3:]}}
+                </td>
+                <td>{{ token.description }}</td>
+                <td>{{ token.username }} </td>
+                <td><a class="btn btn-primary" href="{{ url_for('main.lwp_tokens') }}?action=del&token={{ token.token }}">Delete</a></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
     </div>
+</div>
 </div>
 {% endblock %}
 {% block script %}
 <script type="text/javascript">
+        var rand = function() {
+            return Math.random().toString(36).substr(2);
+        };
         $(document).ready(function(){
             $('#generate').on('click', function(event) {
                 event.preventDefault();
-                $('#token').val( Math.random().toString(36).substring(7));
+                $('#token').val( rand() + rand() );
             })
         });
     </script>

@@ -48,7 +48,6 @@ def before_request():
     """
     executes functions before all requests
     """
-    pass
     from lwp.utils import check_session_limit
     check_session_limit()
     #~ g.db = connect_db(app.config['DATABASE'])
