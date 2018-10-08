@@ -79,6 +79,7 @@
         <thead>
             <tr>
                 <th>Name</th>
+                <th>release</th>
                 <th>State</th>
                 {#<th>Start<br> on boot</th>#}
                 <th>Actions</th>
@@ -88,15 +89,21 @@
         {% for container in containers %}
                 <tr class="{{ tr[container.state] }}">
                     <td style="width:55%">
-                        <a href="{{ url_for('main.edit',container=container.name) }}" title="Click to edit {{container.name}}">
+                        <a href="{{ url_for('main.edit',container_name=container.name) }}" title="Click to edit {{container.name}}">
                             <h4>
                                 {{container.name}}
                             </h4>
-                            <p>
-                                {{container.settings.utsname}} - {% if container.settings.ipv4  %}{{container.settings.ipv4}}{% else %}-{% endif %}
+                            <p>{{container['settings']}}
+                                {{container['settings']['utsname']}}&nbsp;
+                                {% for network in container['settings']['networks'].values() %}
+                                    {% if network.ipv4|length > 0 %}
+                                        / {% for ip in network.ipv4 %}{{ip}}{% endfor %}
+                                    {% endif %}
+                                {% endfor %}
                             </p>
                         </a>
                     </td>
+                    <td>{{container.os_release.PRETTY_NAME}}<br>{{container['settings']['arch']}}</td>
                     <td>
                         <div  style="vertical-algin:middle;text-align:center;">
                         {% if container.state == 'RUNNING' %}
@@ -112,8 +119,8 @@
                         </div>
                     </td>
                     {#
-                    <td class="hidden-phone">
-                        {% if container.settings.start_auto == '1' %}
+                    <td>
+                        {% if container['settings']['start.auto'] == '1' %}
                             <i class="fa fa-check"></i>
                             {% if container.settings.start_order %} {{ container.settings.start_order }} {% endif %}
                         {% else %}
@@ -158,7 +165,7 @@
     {% include "includes/modal_reboot.html" %}
     {% include "includes/modal_create.html" %}
 
-    {% if containers != [] %}
+    {% if containers|length > 0 %}
         {% include "includes/modal_clone.html" %}
         {% include "includes/modal_backup.html" %}
         {% include "includes/modal_destroy.html" %}
@@ -257,13 +264,6 @@
                     $('.modal-body #destroy-container-name').text($(this).data('container-name'));
                     $('#destroy').modal('show');
                 });
-                //~ $('.modal').on('show.bs.modal', function (event) {
-                  //~ var button = $(event.relatedTarget) // Button that triggered the modal
-                  //~ var container = button.data('container-name') // Extract info from data-* attributes
-                  //~ var modal = $(this)
-                  //~ modal.find('.target-container').text('Container ' + container)
-                  //~ modal.find('.modal-body select').filter(':visible:first').val(container)
-                //~ })
                 // Create CT
                 $('#advancedcreate').click(function(e){ e.preventDefault(); $('#advancedcreatediv').slideToggle(); });
 
@@ -303,5 +303,5 @@
                     })
             });{% endif %}
 </script>
-</div>
+
 {% endblock %}

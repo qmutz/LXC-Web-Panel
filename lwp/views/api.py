@@ -40,6 +40,7 @@ def get_host_checks():
     }
     return jsonify(info)
 
+import subprocess   
 from marshmallow import Schema, fields, pprint
 class ContainerSchema(Schema):
     name = fields.Str()
@@ -53,7 +54,19 @@ class ContainerSchema(Schema):
     #~ max_mem = fields.Function(lambda obj: obj.get_cgroup_item("memory.limit_in_bytes"))
     runtime = fields.Method('get_runtime_values')
     settings = fields.Method('get_settings')
+    os_release = fields.Method('get_os_release')
     
+    def get_os_release(self, obj):
+        release_files = ('os-release','lsb-release','fedora-release','redhat-release','centos-release','plamo-release')
+        output = False
+        for release_file in release_files:
+            cmd = "cat {}/etc/{}".format(obj.get_config_item('lxc.rootfs'),release_file)
+            try:
+                output = subprocess.check_output(cmd, shell=True)
+            except: pass
+            if output:
+                return format_release(output)
+                
     def get_runtime_values(self, obj):
         cgroups = ['memory.limit_in_bytes','memory.usage_in_bytes']
         to_int = ['memory.limit_in_bytes','memory.usage_in_bytes']
@@ -64,23 +77,42 @@ class ContainerSchema(Schema):
             try:
                 values[cgroup] = obj.get_cgroup_item(cgroup)
             except: pass
-        print(values)
+        #~ print(values)
         for to_int_key in to_int:
             if to_int_key in values:
-                #~ try:
                 values[to_int_key] = int(values[to_int_key])
-                
         return values
         
     def get_settings(self, obj):
+        network_settings = ['lxc.network.type','lxc.network.link','lxc.network.flags','lxc.network.hwaddr','lxc.network.ipv4']
+        settings = ['lxc.rootfs','lxc.rootfs.backend','lxc.tty','lxc.utsname','lxc.arch','lxc.loglevel','lxc.start.auto']
         values = {}
+        for setting in settings:
+            #~ print(obj.name, setting)
+            values[setting.replace('lxc.','')] = obj.get_config_item(setting)
+        values['networks'] = {}
+        count = 0
+        networks = set(obj.get_config_item('lxc.network'))
+        for network in networks:
+            values['networks'][network] = {}
+            for nk in network_settings:
+                new_key = nk.replace('lxc.network.','lxc.network.{}.'.format(count))        
+                values['networks'][network][nk.replace('lxc.network.','')] = obj.get_config_item(new_key)
+            count +=1
         return values
-        #~ return obj.income - obj.debt
-    #~ ips = fields.List(fields.String)
+
+def format_release(output):
+    if 'NAME' in output.decode():
+        release = {}
+        for line in output.decode().split('\n'):
+            if '=' in line:
+                splitted = line.split('=')
+                release[splitted[0]] = splitted[1].replace('"','')
+            #~ print(line)
     
-class Container(object):
-    def __init__(self, c):
-        self.name = c.name
+    else:
+        release = {'PRETTY_NAME':output.decode().strip()}
+    return release
     
 @mod.route('/api/v1/container/')
 @api_auth()
@@ -89,47 +121,35 @@ def get_containers():
     Returns lxc containers on the current machine and brief status information.
     """
     import lxc
-    list_container = []
-    
-    #~ class Container(ToDictMixin,lxc.Container):
-        #~ TO_SERIALIZE = ["state",'config_file_name','interfaces','ips','init_pid','name','running','snapshots',]
-            
-    #~ list_container = lxc.list_status()
+
+    #~ list_container = []
     _list = []
     for c in lxc.list_containers():
-        #~ print(c)
+        container = lxc.Container(c)
         schema = ContainerSchema()
-        #~ container = Container(c)
-        result = schema.dump(lxc.Container(c))
-        pprint(result)
-        #~ return result
-        #~ container = Container(c)
-        #~ container.interfaces = container.get_interfaces()
-        #~ container.ips = container.get_ips()
-        #~ container.snapshots = container.snapshot_list()
-        #~ print('-' * 20)
-        #~ print(container.running)
+        result = schema.dump(container)
+        #~ pprint(result)
+        #~ print(result.data['settings'])
 
+        #~ if container.running:
+            #~ osrelease = container.attach_wait(lxc.attach_run_command, ["cat", "/etc/os-release"])
+            #~ print(osrelease)
         _list.append(result[0])
-        
-    """
-    ['TO_SERIALIZE', '__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', 'add_device_net', 'add_device_node', 'append_config_item', 'attach', 'attach_interface', 'attach_wait', 'clear_config', 'clear_config_item', 'clone', 'config_file_name', 'console', 'console_getfd', 'controllable', 'create', 'defined', 'destroy', 'detach_interface', 'freeze', 'from_dict', 'get_cgroup_item', 'get_config_item', 'get_config_path', 'get_interfaces', 'get_ips', 'get_keys', 'get_running_config_item', 'init_pid', 'load_config', 'name', 'network', 'reboot', 'remove_device_node', 'rename', 'running', 'save_config', 'set_cgroup_item', 'set_config_item', 'set_config_path', 'shutdown', 'snapshot', 'snapshot_destroy', 'snapshot_list', 'snapshot_restore', 'start', 'state', 'stop', 'to_dict', 'unfreeze', 'wait']
-
-    """
-    #~ for c in lxc.list_containers() + lxc.list_containers(active=False):
-        #~ _list.append(c)
-    #~ inactive_containers = lxc.list_containers(active=False)
-    print(len(lxc.list_containers()))
-    print(len(lxc.list_containers(active=True)))
-    print(len(lxc.list_containers(active=False)))
-    print(_list)
-    return json.dumps(_list)
-
-
+    return jsonify(_list)
+    
 @mod.route('/api/v1/container/<name>/')
 @api_auth()
 def get_container(name):
-    return jsonify(lxc.info(name))
+    import lxc
+    container = lxc.Container(name)
+    schema = ContainerSchema()
+    result = schema.dump(container)
+    return jsonify(result[0])
+
+#~ @mod.route('/api/v1/container/<name>/')
+#~ @api_auth()
+#~ def get_container(name):
+    #~ return jsonify(lxc.info(name))
 
 
 @mod.route('/api/v1/container/<name>/', methods=['POST'])

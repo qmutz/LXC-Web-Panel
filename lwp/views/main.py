@@ -91,11 +91,18 @@ class GantryClient():
         r = requests.delete(self.build_url('token'),params=self.get_payload(),json=data)
         return r.status_code
         
-    def add_token(self, token,description,username):
+    def add_token(self, token, description, username):
         data = {'token':token,'description':description,'username':username}
         r = requests.put(self.build_url('token'),params=self.get_payload(),json=data)
         return r.status_code
         
+    def get_containers(self):
+        r = requests.get(self.build_url('container'),params=self.get_payload())
+        return r.json()
+        
+    def get_container(self,container_name):
+        r = requests.get(self.build_url('container/{}'.format(container_name)),params=self.get_payload())
+        return r.json()
         
 def plain_containers(_list):
     container_list = []
@@ -104,10 +111,6 @@ def plain_containers(_list):
     return container_list 
 
 
-def get_containers(plain=False,by_status=False):
-    url = 'http://{}:{}{}'.format(app.config['ADDRESS'], app.config['PORT'], api_prefix)
-    r = requests.get(url + '/container/',params=payload)
-    container_list = r.json()
     
     #~ STATUSES = ('RUNNING', 'FROZEN', 'STOPPED')
     #~ if plain:
@@ -129,7 +132,7 @@ def get_containers(plain=False,by_status=False):
                 #~ 'containers': containers_by_status
             #~ })
         #~ return container_list, containers_status
-    return container_list
+    #~ return container_list
 
 @mod.route('/')
 @mod.route('/home')
@@ -140,18 +143,13 @@ def home():
     """
     gantry = GantryClient(config)
     host_info = gantry.get_host()
-    containers = get_containers()
-    
-    #~ containers_all = []
+    containers = gantry.get_containers()
     clonable_containers = []
-    #~ container_list, containers_status = get_containers(by_status=True)
-    #~ containers_plain = plain_containers(container_list)
     for container in containers:
         if container['state'] == 'stopped':
             clonable_containers.append(container['container'])
     context = {
         'containers': containers,
-        #~ 'containers_all': containers_status,
         'clonable_containers': clonable_containers,
         'dist': host_info['distribution'],
         'host': host_info['hostname'],
@@ -178,15 +176,17 @@ def about():
     return render_template('about.html', **context)
 
 
-@mod.route('/<container>/edit', methods=['POST', 'GET'])
+@mod.route('/<container_name>/edit', methods=['POST', 'GET'])
 @if_logged_in()
-def edit(container=None):
+def edit(container_name):
     """
     Edit containers page and actions if form post request
     """
     host_memory = lwp.host_memory_usage()
-    info = lxc.info(container)
-    cfg = lwp.get_container_settings(container, info['state'])
+    gantry = GantryClient(config)
+    container = gantry.get_container(container_name)
+    #~ info = lxc.info(container)
+    #~ cfg = lwp.get_container_settings(container, info['state'])
     if request.method == 'POST':
         form = request.form.copy()
         # convert boolean in correct value for lxc, if checkbox is inset value is not submitted inside POST

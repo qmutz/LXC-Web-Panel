@@ -1,16 +1,23 @@
+<script>
+    $.bootstrapGrowl("My message");
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
-<script>
-{% for category, message in messages %}
 {#<div class="alert alert-dismissible alert-{{ category }}">
     <button type="button" class="close" data-dismiss="alert">&times;</button>
     {{ message }}
 </div>#}
-$('.top-left').notify({
-    message: { text: '{{ message }}' },
-    type: '{{ category }}'
-  }).show();
+{% for category, message in messages %}
+    $.bootstrapGrowl("{{ message }}", {
+      ele: 'body', // which element to append to
+      type: '{{ category }}', // (null, 'info', 'error', 'success')
+      offset: {from: 'top', amount: 20}, // 'top', or 'bottom'
+      align: 'right', // ('left', 'right', or 'center')
+      width: 250, // (integer, or 'auto')
+      delay: 400000,
+      allow_dismiss: true,
+      stackup_spacing: 10 // spacing between consecutively stacked growls.
+    });
 {% endfor %}
 {% endif %}
-</script>
 {% endwith %}
+</script>
