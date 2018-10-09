@@ -9,7 +9,7 @@
     
     <a href="{{ url_for('main.home') }}" id="proj-btn" class="text-center bg-primary text-white list-group-item list-group-item-action{% if request.url_rule.endpoint=="main.home" %}active{% endif %}"><i class="fas fa-vial fa-2x"></i><br>Projects</a>
     
-    <a href="{{ url_for('main.home') }}" id="cont-btn" class="text-center bg-primary text-white list-group-item list-group-item-action{% if request.url_rule.endpoint=="main.home" %}active{% endif %}"><i class="fas fa-server fa-2x"></i><br>Containers</a>
+    <a href="{{ url_for('main.containers') }}" id="cont-btn" class="text-center bg-primary text-white list-group-item list-group-item-action{% if request.url_rule.endpoint=="main.containers" %}active{% endif %}"><i class="fas fa-server fa-2x"></i><br>Containers</a>
 {#
 {% if containers != [] %}
     {% for c in containers %}

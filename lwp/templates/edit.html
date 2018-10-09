@@ -1,26 +1,35 @@
 {% extends "layout.html" %}
-{% block title %}{{container|capitalize}}{% endblock %}
+{% block title %}{{container.name|capitalize}}{% endblock %}
 {% block content %}
 
-{% set span = {'RUNNING':'success','FROZEN':'info','STOPPED':'important'} %}
+{#% set span = {'RUNNING':'success','FROZEN':'info','STOPPED':'important'} %#}
 {% set start_action = {'STOPPED':'start','FROZEN':'unfreeze'} %}
 <div class="col-lg-8">
     {{ super() }}
     <h3 class="head">
-        {% if infos['status']== 'RUNNING' %}
+        {% if container.state== 'RUNNING' %}
             <i class="fas fa-circle text-success" aria-hidden="true"></i>&nbsp;
-        {% elif infos['status'] == 'FROZEN' %}
+        {% elif container.state == 'FROZEN' %}
             <i class="fas fa-circle text-warning" aria-hidden="true"></i>&nbsp;
         {% else %}
             <i class="fas fa-circle text-danger" aria-hidden="true"></i>&nbsp;
         {% endif %}
-        {{container}} &bull; {{ settings.utsname }}
+        {{container.name}} &bull; {{container.settings.utsname }}
     </h3>
-    <p style="padding-left:2em">{{settings.ipv4}}
-       IPv4 {% if settings.flags == 'up' %}<i class="fas fa-circle text-success" aria-hidden="true"></i>{% else %}<i class="fas fa-circle text-muted" aria-hidden="true"></i>{% endif %}{% if settings.ipv4  %}{{settings.ipv4}}{% endif %}
-       / CPU {% if settings.cpus %}{{ settings.cpus }}{% else %}All{% endif %}
-       / Memory <span id="{{ container }}">{% if infos.memusg %}{{ render_memory_wrapper(infos.memusg) }}/{% endif %}{% if settings.memlimit %}{{ settings.memlimit }}{% else %}{{ host_memory.total }}{% endif %}&nbsp;&nbsp;</span>
-        / Arch. {{ settings.arch }}
+    <p style="padding-left:2em">
+        {{container.ips}}
+        {{container.interfaces}}
+        {% for network in container.settings.networks.values() %}
+            {% if network.ipv4|length > 0 %}
+                    / IPv4 {% for ip in network.ipv4 %}{{ip}}{% endfor %}
+                    {% if network.flags == 'up' %}
+            {% endif %}
+            <i class="fas fa-circle text-success" aria-hidden="true"></i>{% else %}<i class="fas fa-circle text-muted" aria-hidden="true"></i>{% endif %}
+        {% endfor %}
+
+       / CPU {% if container['settings']['cgroup.cpuset.cpus'] %}{{ container['settings']['cgroup.cpuset.cpus'] [0]}}{% else %}All{% endif %}
+       / Memory <span id="{{ container.name }}">{% if container['runtime']['memory.usage_in_bytes'] %}{{ render_memory_wrapper(container['runtime']['memory.usage_in_bytes']) }}/{% endif %}{% if container['settings']['cgroup.memory.limit_in_bytes'] %}{{ container['settings']['cgroup.memory.limit_in_bytes'][0] }}{% else %}{{ host.memory.total }}{% endif %}&nbsp;&nbsp;</span>
+        / OS {{container.os_release.PRETTY_NAME}} / Arch.{{container.settings.arch}}
         
     </p>
 </div>
@@ -28,23 +37,23 @@
     <div class="text-right">
         <div class="btn-toolbar">
             <div class="btn-group">
-                {% if infos.status != 'STOPPED' %}
+                {% if container.state != 'STOPPED' %}
                     
-                    <span class="btn btn-link"><strong>Pid :</strong> {{ infos.pid }}</span>
+                    <span class="btn btn-link"><strong>Pid :</strong> {{ container.pid }}</span>
                 {% endif %}
                 
-                {% if infos['status'] == 'RUNNING' %}
-                    <span class="btn btn-link">{{ infos['status'] }}</span>
+                {% if container.state == 'RUNNING' %}
+                    <span class="btn btn-link">{{ container.state }}</span>
                 {% else %}
-                    <a id="start-container" class="btn btn-primary" ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content" {% if infos['status'] == 'STOPPED' or infos['status'] == 'FROZEN' %}ic-get-from="{{ url_for('main.action', name=container, action=start_action[infos['status']], from='edit') }}"{% endif %}>
+                    <a id="start-container" class="btn btn-primary" ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content" {% if container.state == 'STOPPED' or container.state == 'FROZEN' %}ic-get-from="{{ url_for('main.action', name=container.name, action=start_action[container.state], from='edit') }}"{% endif %}>
                     Start<i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
                     </a>
                 {% endif %}
                 
-                <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if infos['status'] == 'STOPPED' %} disabled{% endif %}" {% if infos['status'] == 'RUNNING' or infos['status'] == 'FROZEN' %}ic-get-from="{{ url_for('main.action', name=container, action='stop', from='edit') }}"{% endif %}>
+                <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if container.state == 'STOPPED' %} disabled{% endif %}" {% if container.state == 'RUNNING' or container.state == 'FROZEN' %}ic-get-from="{{ url_for('main.action', name=container.name, action='stop', from='edit') }}"{% endif %}>
                     Stop <i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
                 </a>
-                <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if infos['status'] == 'FROZEN' or infos['status'] == 'STOPPED' %} disabled{% endif %}" {% if infos['status'] == 'RUNNING' %}ic-get-from="{{ url_for('main.action', name=container, action='freeze', from='edit') }}"{% endif %}>
+                <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if container.state == 'FROZEN' or container.state == 'STOPPED' %} disabled{% endif %}" {% if container.state == 'RUNNING' %}ic-get-from="{{ url_for('main.action', name=container.name, action='freeze', from='edit') }}"{% endif %}>
                     Freeze <i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
                 </a>
             </div>
@@ -55,36 +64,31 @@
         <div class="row">
             <div class="col-lg-9">
                 <ul class="nav nav-pills">
-                    <li>
-
-                    </li>
-                    {% if infos.status == "STOPPED" %}
-                        <li><a class="btn btn-outline-primary" data-toggle="modal" data-target="#copyCT{{container}}">Copy</a></li>
+                    {% if container.state == "STOPPED" %}
+                        <li><a class="btn btn-outline-primary" data-toggle="modal" data-target="#copyCT{{container.name}}">Copy</a></li>
                     {% endif %}
-                    {% if storage_repos %}
-                        <li><a class="btn btn-outline-info" data-toggle="modal" data-target="#backupCT{{container}}">Create Backup</a></li>
+                    {% if storage_repository %}
+                        <li><a class="btn btn-outline-info" data-toggle="modal" data-target="#backupCT{{container.name}}">Create Backup</a></li>
                     {% endif %}
                 </ul>
                 <hr>
                 <ul class="nav nav-pills">
                     <li class="text-center">
-                        <h5>&nbsp;&nbsp;{{ settings.arch }}&nbsp;&nbsp;</h5>
-                        Arch.
-                    </li>
-                    <li class="text-center">
-                        <h5 id="{{ container }}">&nbsp;&nbsp;{% if infos.memusg %}{{ render_memory_wrapper(infos.memusg) }}/{% endif %}{% if settings.memlimit %}{{ settings.memlimit }}{% else %}{{ host_memory.total }}{% endif %}&nbsp;&nbsp;</h5>
+                        <h5 id="{{container.name}}">&nbsp;&nbsp;{% if render_memory_wrapper(container['runtime']['memory.usage_in_bytes'])  %}{{ render_memory_wrapper(container['runtime']['memory.usage_in_bytes']) }}/{% endif %}{% if container['settings']['cgroup.memory.limit_in_bytes'] %}{{ container['settings']['cgroup.memory.limit_in_bytes'][0] }}{% else %}{{ host.memory.total }}{% endif %}&nbsp;&nbsp;</h5>
                         Memory
                     </li>
                     <li class="text-center">
-                        <h5>&nbsp;&nbsp;{% if settings.cpus %}{{ settings.cpus }}{% else %}All{% endif %}&nbsp;&nbsp;</h5>
+                        <h5>&nbsp;&nbsp;{% if container['settings']['cgroup.cpuset.cpus']  %}{{ container['settings']['cgroup.cpuset.cpus'][0] }}{% else %}All{% endif %}&nbsp;&nbsp;</h5>
                         CPU
                     </li>
+                    {#
                     <li class="text-center">
                         <h5>&nbsp;&nbsp;{{ all_info.link }}&nbsp;&nbsp;</h5>
                         <i class="fa fa-long-arrow-down" aria-hidden="true"></i>{{all_info.rx_bytes}}/<i class="fa fa-long-arrow-up" aria-hidden="true"></i>{{all_info.tx_bytes}}
                     </li>
+                        #}
                     <li class="text-center">
-                        <h5>&nbsp;&nbsp;{{ snapshots|length }}&nbsp;&nbsp;</h5>
+                        <h5>&nbsp;&nbsp;{{ container.snapshots|length }}&nbsp;&nbsp;</h5>
                         Snapshots
                     </li>
                 </ul>
@@ -124,39 +128,36 @@
 <div class="col-lg-10">
     <div class="tab-content" id="myTabContent">
         {#
-            <form id="config" action="{{ url_for('main.edit', container=container) }}" method="post">
+            <form id="config" action="{{ url_for('main.edit', container_name=container.name) }}" method="post">
         #}
         <div class="tab-pane fade show active" id="info" role="tabpanel" aria-labelledby="info-tab">
             <p>
                 <ul class="list-group">
-                  <li class="list-group-item">Start on boot  {% if settings.start_auto == '1' %}Enabled{% else %}Disabled{% endif %}</li>
-                  <li class="list-group-item">{{ settings.start_delay }} {{ settings.start_order }}</li>
-                  <li class="list-group-item">Vestibulum at eros</li>
+                  <li class="list-group-item">Start on boot  {% if container['settings']['start.auto'] == '1' %}Enabled{% else %}Disabled{% endif %}</li>
+                  <li class="list-group-item">{{ container['settings']['start.delay'] }} {{ container['settings']['start.order'] }}</li>
                 </ul>            
             </p>
         </div>
         <div class="tab-pane fade show" id="boot" role="tabpanel" aria-labelledby="boot-tab">
             <div class="card">
-                <form ic-post-to="{{ url_for('main.edit', container=container) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
+                <form ic-post-to="{{ url_for('main.edit', container_name=container.name) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
                 <div class="card-body">
                     <div class="form-group">
                         <label for="utsname">Hostname</label>
-                        <input class="form-control" pattern="{{ regex.utsname }}" type="text" id="utsname" name="utsname" value="{{ settings.utsname }}">
+                        <input class="form-control" pattern="{{ regex.utsname }}" type="text" id="utsname" name="utsname" value="{{ container.settings.utsname }}">
                     </div>
                     <div class="form-check">
-                        <label for="start_auto">Start at boot
-                            <input class="form-check-input" data-toggle="toggle" type="checkbox" id="start_auto" name="start_auto" value="{{ settings.start_auto }}" {% if settings.start_auto == '1' %} checked{% endif %}/>
+                        <input class="form-check-input" data-toggle="toggle" type="checkbox" id="start.auto" name="start.auto" value="{{ container['settings']['start.auto'] }}" {% if container['settings']['start.auto'] == '1' %} checked{% endif %}/>
+                        <label for="start.auto">Start at boot</label>
                         
-                            <span class="slider"></span>
-                        </label>
                     </div>
                     <div class="form-group">
-                        <label for="start_delay">Delay at boot time</label>
-                        <input class="form-control" pattern="{{ regex.start_delay }}" type="number" id="start_delay" name="start_delay" value="{{ settings.start_delay }}" placeholder="Undefined">
+                        <label for="start.delay">Delay at boot time</label>
+                        <input class="form-control" pattern="{{ regex['start.delay'] }}" type="number" id="start.delay" name="start.delay" value="{{ container['settings']['start.delay'] }}" placeholder="Undefined">
                     </div>
                     <div class="form-group">
-                        <label for="start_order">Start order</label>
-                        <input class="form-control" pattern="{{ regex.start_order }}" type="number" id="start_order" name="start_order" value="{{ settings.start_order }}" placeholder="Undefined">
+                        <label for="start.order">Start order</label>
+                        <input class="form-control" pattern="{{ regex['start.order'] }}" type="number" id="start.order" name="start.order" value="{{container['settings']['start.order']}}" placeholder="Undefined">
                     </div>
                 </div>
                 {% include 'includes/edit_apply_btn.html' %}
@@ -165,63 +166,75 @@
         </div>
         <div class="tab-pane fade" id="network" role="tabpanel" aria-labelledby="network-tab">
             <div class="card">
-                <form ic-post-to="{{ url_for('main.edit', container=container) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
+                <form ic-post-to="{{ url_for('main.edit', container_name=container.name) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
+                        <!--{% for network in container.settings.networks.values() %}
+                                    {% for ip in network.ipv4 %}{{ip}}{% endfor %}-<br>
+                                    {% for ip in network.ipv6 %}{{ip}}{% endfor %}-<br>
+                                    {{network.flags}}<br>
+                                    {{network.type}}<br>
+                                    {{network.link}}<br>
+                                    {{network.hwaddr}}<br>
+                                    {{network.script_up}}<br>
+                                    {{network.script_down}}<br>
+                                    <hr>
+                        {% endfor %} -->
                 <div class="card-body">
+                    {% for network in container.settings.networks.values() %}
                     <div class="form-check switch-network-flags">
-                        <input type="checkbox" class="form-check-input" id="flags" name="flags" value="{{ settings.flags }}"{% if settings.flags == 'up' %} checked{% endif %}/>
-                        <label class="form-check-label" for="flags">Network flag</label>
+                        <input type="checkbox" class="form-check-input" id="network.flags" name="network.flags" value="{{ network.flags }}"{% if network.flags == 'up' %} checked{% endif %}/>
+                        <label class="form-check-label" for="network.flags">Network flag</label>
                     </div>
-                    <div class="form-control" id="network"{% if not settings.flags %} class="hide"{% endif %}></div>
                     <div class="form-group">
-                        <label for="type">Network type</label>
-                        <select class="form-control" pattern="{{ regex.type }}" type="text" id="type" name="type" value="{{ settings.type }}">
-                            <option value="empty" {% if settings.type == "empty" %}selected{% endif %}>empty</option>
-                            <option value="veth" {% if settings.type == "veth" %}selected{% endif %}>veth</option>
-                            <option value="vlan" {% if settings.type == "vlan" %}selected{% endif %}>vlan</option>
-                            <option value="macvlan" {% if settings.type == "macvlan" %}selected{% endif %}>macvlan</option>
-                            <option value="phys" {% if settings.type == "phys" %}selected{% endif %}>phys</option>top
+                        <label for="network.type">Network type</label>
+                        <select class="form-control" pattern="{{ regex.type }}" type="text" id="network.type" name="network.type" value="{{network.type}}">
+                            <option value="empty" {% if network.type == "empty" %}selected{% endif %}>empty</option>
+                            <option value="veth" {% if network.type == "veth" %}selected{% endif %}>veth</option>
+                            <option value="vlan" {% if network.type == "vlan" %}selected{% endif %}>vlan</option>
+                            <option value="macvlan" {% if network.type == "macvlan" %}selected{% endif %}>macvlan</option>
+                            <option value="phys" {% if network.type == "phys" %}selected{% endif %}>phys</option>top
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label for="link">Network link</label>
-                        <input class="form-control" pattern="{{ regex.link }}" type="text" id="link" name="link" value="{{ settings.link }}" placeholder="Undefined">
+                        <label for="network.link">Network link</label>
+                        <input class="form-control" pattern="{{ regex.link }}" type="text" id="network.link" name="network.link" value="{{ network.link }}" placeholder="Undefined">
                     </div>
 
                     <div class="form-group">
-                        <label for="hwaddr">HW address</label>
-                        <input class="form-control" pattern="{{ regex.hwaddr }}" type="text" id="hwaddr" name="hwaddr" value="{{ settings.hwaddr }}" placeholder="Undefined">
+                        <label for="network.hwaddr">HW address</label>
+                        <input class="form-control" pattern="{{ regex.hwaddr }}" type="text" id="network.hwaddr" name="network.hwaddr" value="{{ network.hwaddr }}" placeholder="Undefined">
                     </div>
-
+    
                     <div class="form-group">
-                        <label for="ipv4">IPv4 address</label>
-                        <input class="form-control" pattern="{{ regex.ipv4 }}" type="text" id="ipv4" name="ipv4" value="{{ settings.ipv4 }}" placeholder="Undefined">
+                        <label for="network.ipv4">IPv4 address</label>
+                        <input class="form-control" pattern="{{ regex.ipv4 }}" type="text" id="network.ipv4" name="network.ipv4" value="{{ network.ipv4.0 }}" placeholder="Undefined">
                     </div>
                     
                     <div class="form-group">
-                        <label for="ipv4gw">IPv4 gateway</label>
-                        <input class="form-control" pattern="{{ regex.ipv4gw }}" type="text" id="ipv4gw" name="ipv4gw" value="{{ settings.ipv4gw }}" placeholder="Undefined">
+                        <label for="network.ipv4gw">IPv4 gateway</label>
+                        <input class="form-control" pattern="{{ regex.ipv4gw }}" type="text" id="network.ipv4gw" name="network.ipv4gw" value="{{ network.ipv4gw }}" placeholder="Undefined">
                     </div>
 
                     <div class="form-group">
-                        <label for="ipv6">IPv6 address</label>
-                        <input class="form-control" pattern="{{ regex.ipv6 }}" type="text" id="ipv6" name="ipv6" value="{{ settings.ipv6 }}" placeholder="Undefined">
+                        <label for="network.ipv6">IPv6 address</label>
+                        <input class="form-control" pattern="{{ regex.ipv6 }}" type="text" id="network.ipv6" name="network.ipv6" value="{{ network.ipv6.0}}" placeholder="Undefined">
                     </div>
 
                     <div class="form-group">
-                        <label for="ipv6gw">IPv6 gateway</label>
-                        <input class="form-control" pattern="{{ regex.ipv6gw }}" type="text" id="ipv6gw" name="ipv6gw" value="{{ settings.ipv6gw }}" placeholder="Undefined">
+                        <label for="network.ipv6gw">IPv6 gateway</label>
+                        <input class="form-control" pattern="{{ regex.ipv6gw }}" type="text" id="network.ipv6gw" name="network.ipv6gw" value="{{ network.ipv6gw }}" placeholder="Undefined">
                     </div>
 
                     <div class="form-group">
-                        <label for="script_up">Network script up</label>
-                        <input class="form-control" pattern="{{ regex.script_up }}" type="text" id="script_up" name="script_up" value="{{ settings.script_up }}">
+                        <label for="network.script_up">Network script up</label>
+                        <input class="form-control" pattern="{{ regex.script_up }}" type="text" id="network.script_up" name="network.script_up" value="{{ network.script_up }}">
                     </div>
 
                     <div class="form-group">
-                        <label for="script_down">Network script down</label>
-                        <input class="form-control" pattern="{{ regex.script_down }}" type="text" id="script_down" name="script_down" value="{{ settings.script_down }}">
+                        <label for="network.script_down">Network script down</label>
+                        <input class="form-control" pattern="{{ regex.script_down }}" type="text" id="network.script_down" name="network.script_down" value="{{ network.script_down }}">
                     </div>
+                    {% endfor %}
                 </div>
                 {% include 'includes/edit_apply_btn.html' %}
                 </form>
@@ -229,31 +242,35 @@
         </div>
         <div class="tab-pane fade" id="resources" role="tabpanel" aria-labelledby="resources-tab">
             <div class="card">
-                <form ic-post-to="{{ url_for('main.edit', container=container) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
+                <form ic-post-to="{{ url_for('main.edit', container_name=container.name) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
                 <div class="card-body">
                     <div class="form-group">
                         <label for="memlimit">Memory limit *</label>
-                        <input class="form-control fix-height" pattern="[0-9]+" type="range" id="memlimit" name="memlimit" min="16" max="{{ host_memory.total }}" value="{% if settings.memlimit %}{{ settings.memlimit }}{% else %}{{ host_memory.total }}{% endif %}" onChange="updateMemInput('inputMemlimit', this.value, {{ host_memory.total }});">
-                        <label><input pattern="[0-9]+" class="input-mini{% if not settings.memlimit %} hide{% endif %} form-control" id="inputMemlimit" type="number" min="16" max="{{ host_memory.total }}" value="{% if settings.memlimit %}{{ settings.memlimit }}{% endif %}" onChange="updateMemSlider('memlimit', this.value);"><span class="help-inline fix-height">{% if settings.memlimit %}MB{% else %}Unlimited{% endif %}</span></label>
+                        <input class="form-control fix-height" pattern="[0-9]+" type="range" id="memlimit" name="cgroup.memory.limit_in_bytes" min="16" max="{{ host.memory.total }}" value="{% if container['settings']['cgroup.memory.limit_in_bytes'] %}{{ container['settings']['cgroup.memory.limit_in_bytes'][0] }}{% else %}{{ host.memory.total }}{% endif %}" onChange="updateMemInput('inputMemlimit', this.value, {{ host.memory.total }});">
+                        <label><input pattern="[0-9]+" class="input-mini{% if not container['runtime']['cgroup.memory.limit_in_bytes'] %} hide{% endif %} form-control" id="inputMemlimit" type="number" min="16" max="{{ host.memory.total }}" value="{% if container['settings']['cgroup.memory.limit_in_bytes'] %}{{ container['settings']['cgroup.memory.limit_in_bytes'][0] }}{% endif %}" onChange="updateMemSlider('memlimit', this.value);"><span class="help-inline fix-height">{% if container['settings']['cgroup.memory.limit_in_bytes'] %}MB{% else %}Unlimited{% endif %}</span></label>
                     </div>
+                    {#
+                        requires first check if system has cgroup_enable=memory swapaccount=1
+                        https://serverfault.com/questions/790318/cannot-enable-cgroup-enable-memory-swapaccount-1-on-gce-debian-jessie-instance#801259
                     <div class="form-group">
                         <label for="sliderSwlimit">Memory + Swap limit *</label>
-                        <input class="form-control fix-height" pattern="[0-9]+" type="range" id="sliderSwlimit" name="swlimit" min="32" max="{{ host_memory.total * 2 }}" value="{% if settings.swlimit %}{{ settings.swlimit }}{% else %}{{ host_memory.total * 2 }}{% endif %}" onChange="updateMemInput('inputSwlimit', this.value, {{ host_memory.total * 2 }});">
-                        <label><input pattern="[0-9]+" class="input-mini{% if not settings.swlimit %} hide{% endif %} form-control" id="inputSwlimit" type="number" min="32" max="{{ host_memory.total *2 }}" value="{% if settings.swlimit %}{{ settings.swlimit }}{% endif %}" onChange="updateMemSlider('sliderSwlimit', this.value);"><span class="help-inline fix-height">{% if settings.swlimit %}MB{% else %}Unlimited{% endif %}</span></label>
+                        <input class="form-control fix-height" pattern="[0-9]+" type="range" id="sliderSwlimit" name="swlimit" min="32" max="{{ host.memory.total * 2 }}" value="{% if container['settings']['memory.memsw.limit_in_bytes'] %}{{ container['settings']['memory.memsw.limit_in_bytes'] }}{% else %}{{ host.memory.total * 2 }}{% endif %}" onChange="updateMemInput('inputSwlimit', this.value, {{ host.memory.total * 2 }});">
+                        <label><input pattern="[0-9]+" class="input-mini{% if not container['settings']['memory.memsw.limit_in_bytes'] %} hide{% endif %} form-control" id="inputSwlimit" type="number" min="32" max="{{ host.memory.total *2 }}" value="{% if container['settings']['memory.memsw.limit_in_bytes'] %}{{ container['settings']['memory.memsw.limit_in_bytes'] }}{% endif %}" onChange="updateMemSlider('sliderSwlimit', this.value);"><span class="help-inline fix-height">{% if container['settings']['memory.memsw.limit_in_bytes'] %}MB{% else %}Unlimited{% endif %}</span></label>
                     </div>
+                        #}
                     <div class="form-group">
                         <label for="inputCPUs">CPUs **</label>
-                        <input class="form-control" pattern="{{ regex.cpus }}" type="text" id="inputCPUs" name="cpus" value="{{ settings.cpus }}" placeholder="All">
+                        <input class="form-control" pattern="{{ regex.cpus }}" type="text" id="inputCPUs" name="cgroup.cpuset.cpus" value="{{ container['settings']['cgroup.cpuset.cpus'][0]  }}" placeholder="All">
                         <span class="help-inline"><small>(e.g 0 or 0-1,3 or 0,3)</small></span>
                     </div>
                     <div class="form-group">
                         <label for="inputCPUShares">CPU Shares **</label>
-                        <input class="form-control" pattern="{{ regex.shares }}" type="number" id="inputCPUShares" name="shares" min="16" step="2" value="{{ settings.shares }}" placeholder="1024">
+                        <input class="form-control" pattern="{{ regex.shares }}" type="number" id="inputCPUShares" name="cgroup.cpuset.cpus" min="16" step="2" value="{{ container['settings']['cgroup.cpuset.shares'] }}" placeholder="1024">
                     </div>
                     <div class="form-group">
                         <label for="inputRootfs">Root FS</label>
-                        <input class="form-control" pattern="{{ regex.rootfs }}" type="text" id="inputRootfs" name="rootfs" value="{{ settings.rootfs }}">
-                        <span class="help-inline"><small>(e.g /var/lib/lxc/{{container}}/rootfs)</small></span>
+                        <input class="form-control" pattern="{{ regex.rootfs }}" type="text" id="inputRootfs" name="rootfs" value="{{ container['settings']['rootfs'] }}">
+                        <span class="help-inline"><small>(e.g {{container.settings.rootfs}})</small></span>
                     </div>
                 </div>
                 {% include 'includes/edit_apply_btn.html' %}
@@ -263,26 +280,27 @@
         <div class="tab-pane fade" id="logging" role="tabpanel" aria-labelledby="logging-tab">
             <div class="card">
                 <div class="card-header"><h3>Logging</h3></div>
-                <form ic-post-to="{{ url_for('main.edit', container=container) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
+                <form ic-post-to="{{ url_for('main.edit', container_name=container.name) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
                 <div class="card-body">
                     <div class="form-group">
                         <label for="loglevel">Log level</label>
                         <select class="form-control" type="text" id="loglevel" name="loglevel">
-                            <option value="0" {% if settings.loglevel == '0' %}selected{% endif %}>trace</option>
-                            <option value="1" {% if settings.loglevel == '1' %}selected{% endif %}>debug</option>
-                            <option value="2" {% if settings.loglevel == '2' %}selected{% endif %}>info</option>
-                            <option value="3" {% if settings.loglevel == '3' %}selected{% endif %}>notice</option>
-                            <option value="4" {% if settings.loglevel == '4' %}selected{% endif %}>warn</option>
-                            <option value="5" {% if settings.loglevel == '5' %}selected{% endif %}>error</option>
-                            <option value="6" {% if settings.loglevel == '6' %}selected{% endif %}>critical</option>
-                            <option value="7" {% if settings.loglevel == '7' %}selected{% endif %}>alert</option>
-                            <option value="8" {% if settings.loglevel == '8' %}selected{% endif %}>fatal</option>
+                            <option value="NOTSET" {% if container.settings.loglevel == 'NOTSET' %}selected{% endif %}>NOTSET</option>
+                            <option value="TRACE" {% if container.settings.loglevel == 'TRACE' %}selected{% endif %}>trace</option>
+                            <option value="DEBUG" {% if container.settings.loglevel == 'DEBUG' %}selected{% endif %}>debug</option>
+                            <option value="INFO" {% if container.settings.loglevel == 'INFO' %}selected{% endif %}>info</option>
+                            <option value="3" {% if container.settings.loglevel == '3' %}selected{% endif %}>notice</option>
+                            <option value="4" {% if container.settings.loglevel == '4' %}selected{% endif %}>warn</option>
+                            <option value="5" {% if container.settings.loglevel == '5' %}selected{% endif %}>error</option>
+                            <option value="6" {% if container.settings.loglevel == '6' %}selected{% endif %}>critical</option>
+                            <option value="7" {% if container.settings.loglevel == '7' %}selected{% endif %}>alert</option>
+                            <option value="8" {% if container.settings.loglevel == '8' %}selected{% endif %}>fatal</option>
                         </select>
                         <small class="text-muted">Default log level: 5 - error</small>
                     </div>
                     <div class="form-group">
                         <label for="logfile">Log file</label>
-                        <input class="form-control" type="text" pattern="{{ regex.logfile }}" id="logfile" name="logfile" value="{{ settings.logfile }}">
+                        <input class="form-control" type="text" pattern="{{ regex.logfile }}" id="logfile" name="logfile" value="{{  container.settings.logfile }}">
                         <small class="text-muted"></small>
                     </div>
                 </div>
@@ -294,13 +312,13 @@
         <div class="tab-pane fade" id="snapshots" role="tabpanel" aria-labelledby="snapshots-tab">
             <div class="card">
                 <div class="card-body">
-                    {% if infos['status'] == 'STOPPED' %}
-                    <input id="name-{{ container }}" name="name" value="{{ container }}" type="hidden">
-                    <a id="create-snapshot" class="btn btn-outline-danger" ic-replace-target="true" ic-include="#name-{{ container }}" ic-target="#snapshots-table" ic-post-to="{{ url_for('main.snapshot_container') }}">
+                    {% if container.state == 'STOPPED' %}
+                    <input id="name-{{container.name}}" name="name" value="{{container.name}}" type="hidden">
+                    <a id="create-snapshot" class="btn btn-outline-primary" ic-replace-target="false" ic-include="#name-{{container.name}}" ic-select-from-response="#snapshots-table" ic-target="#snapshots-table" ic-get-from="{{url_for('main.action', action='snapshot_create', name=container.name, from='edit') }}">
                         Create snapshot&nbsp;<i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
                     </a>
                     {% else %}
-                    <div class="alert alert-warning">Stop container first to take snapshots.</div>
+                        <div class="alert alert-warning">Stop container first to take snapshots.</div>
                     {% endif %}
                     
                     {% include 'snapshots.html' %}
@@ -333,7 +351,7 @@
     <p class="muted"><small>* Set to max to unset (unlimited)<br />** Leave empty to unset</small></p>
 
 
-{% with container_name=container %}
+{% with container_name=container.name %}
 {% include "includes/modal_clone.html" %}
 {% include "includes/modal_backup.html" %}
 {% endwith %}
@@ -346,7 +364,7 @@
 
 {% block script %}
 <script type="text/javascript">
-        {% if infos['status'] != 'STOPPED' %}
+        {% if container.state != 'STOPPED' %}
             function memory_color(value){
                 if(value != 0)
                     if ('0' <= value && value <= '512') return 'success';
@@ -355,7 +373,7 @@
             }
 
             function refreshMemory(container){
-                $.getJSON('{{ url_for('main.refresh_memory_containers', name='CONTAINER') }}'.replace("CONTAINER", container), function(data) {
+                $.getJSON('{{ url_for('main.refresh_memory_containers', name=container.name) }}', function(data) {
                     var el = $('#'+container+' span');
                     if (el.length > 0) {
                         el.text(data.memusg+' MB');
@@ -364,7 +382,7 @@
                 });
             }
 
-            window.setInterval('refreshMemory("{{ container }}")', 5000);
+            window.setInterval('refreshMemory("{{container.name}}")', 5000);
         {% endif %}
 
         // Network flags

@@ -22,7 +22,7 @@
                     </select>
                     {% endif %}
                     <select class="form-control  form-control-lg" id="selectSR" name="dest">
-                        {% for sr in storage_repos %}<option value="{{ sr[0] }}">{{sr[0]}}</option>{% endfor %}
+                        {% for sr in storage_repository %}<option value="{{ sr[0] }}">{{sr[0]}}</option>{% endfor %}
                     </select>
                 <p><strong>Beware:</strong> container will be frozen if in 'running' state.</p>
                 {#<p><strong>Note:</strong> Push option use <a href="http://claudyus.github.io/file-bucket/">file-bucket</a> to backup instances remotely.</p>#}

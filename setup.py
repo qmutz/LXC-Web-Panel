@@ -28,6 +28,7 @@ setup(
         'requests',
         'marshmallow',
         'python3-lxc',
+        'configobj',
     ],
     scripts=['bin/lwp'],
 )

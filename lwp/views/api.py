@@ -2,14 +2,15 @@
 #~ from __future__ import absolute_import, print_function
 import socket
 import json
-
+import subprocess   
+import lxc
+from configobj import ConfigObj
+from playhouse.shortcuts import model_to_dict, dict_to_model
 from flask import Blueprint, request, g, jsonify
 import lwp
-import lwp.lxclite as lxc
 from lwp.decorators import api_auth
-from playhouse.shortcuts import model_to_dict, dict_to_model
+from lwp.utils import ContainerSchema
 from lwp.database.models import ApiTokens, Users
-
 # Flask module
 mod = Blueprint('api', __name__)
 
@@ -25,6 +26,10 @@ def get_host_info():
         'distribution': lwp.name_distro(),
         'version': lwp.check_version(),
         'network': lwp.get_net_settings(),
+        'memory': lwp.host_memory_usage(),
+        'cpu': lwp.host_cpu_percent(),
+        'disk': lwp.host_disk_usage(),
+        'uptime': lwp.host_uptime(),
     }
     return jsonify(info)
 
@@ -35,145 +40,102 @@ def get_host_checks():
     """
     Returns lxc configuration checks.
     """
+    import lxc
+    out = subprocess.check_output('lxc-checkconfig', shell=True)
+    response = []
+    if out:
+        for line in out.splitlines():
+            response.append(line.decode('utf-8'))    
     info = {
-        'checks': lxc.checkconfig(),
+        'checks': response,
     }
     return jsonify(info)
 
-import subprocess   
-from marshmallow import Schema, fields, pprint
-class ContainerSchema(Schema):
-    name = fields.Str()
-    state = fields.Str()
-    init_pid = fields.Str()
-    config_file_name = fields.Str()
-    #~ interfaces = fields.List(fields.String)
-    interfaces = fields.Function(lambda obj: obj.get_interfaces())
-    snapshots = fields.Function(lambda obj: obj.snapshots_list())
-    ips = fields.Function(lambda obj: obj.get_ips())
-    #~ max_mem = fields.Function(lambda obj: obj.get_cgroup_item("memory.limit_in_bytes"))
-    runtime = fields.Method('get_runtime_values')
-    settings = fields.Method('get_settings')
-    os_release = fields.Method('get_os_release')
-    
-    def get_os_release(self, obj):
-        release_files = ('os-release','lsb-release','fedora-release','redhat-release','centos-release','plamo-release')
-        output = False
-        for release_file in release_files:
-            cmd = "cat {}/etc/{}".format(obj.get_config_item('lxc.rootfs'),release_file)
-            try:
-                output = subprocess.check_output(cmd, shell=True)
-            except: pass
-            if output:
-                return format_release(output)
-                
-    def get_runtime_values(self, obj):
-        cgroups = ['memory.limit_in_bytes','memory.usage_in_bytes']
-        to_int = ['memory.limit_in_bytes','memory.usage_in_bytes']
-        values = {
-            'memory.usage_in_bytes':0,
-        }
-        for cgroup in cgroups:
-            try:
-                values[cgroup] = obj.get_cgroup_item(cgroup)
-            except: pass
-        #~ print(values)
-        for to_int_key in to_int:
-            if to_int_key in values:
-                values[to_int_key] = int(values[to_int_key])
-        return values
-        
-    def get_settings(self, obj):
-        network_settings = ['lxc.network.type','lxc.network.link','lxc.network.flags','lxc.network.hwaddr','lxc.network.ipv4']
-        settings = ['lxc.rootfs','lxc.rootfs.backend','lxc.tty','lxc.utsname','lxc.arch','lxc.loglevel','lxc.start.auto']
-        values = {}
-        for setting in settings:
-            #~ print(obj.name, setting)
-            values[setting.replace('lxc.','')] = obj.get_config_item(setting)
-        values['networks'] = {}
-        count = 0
-        networks = set(obj.get_config_item('lxc.network'))
-        for network in networks:
-            values['networks'][network] = {}
-            for nk in network_settings:
-                new_key = nk.replace('lxc.network.','lxc.network.{}.'.format(count))        
-                values['networks'][network][nk.replace('lxc.network.','')] = obj.get_config_item(new_key)
-            count +=1
-        return values
 
-def format_release(output):
-    if 'NAME' in output.decode():
-        release = {}
-        for line in output.decode().split('\n'):
-            if '=' in line:
-                splitted = line.split('=')
-                release[splitted[0]] = splitted[1].replace('"','')
-            #~ print(line)
-    
-    else:
-        release = {'PRETTY_NAME':output.decode().strip()}
-    return release
-    
 @mod.route('/api/v1/container/')
 @api_auth()
 def get_containers():
     """
     Returns lxc containers on the current machine and brief status information.
     """
-    import lxc
-
-    #~ list_container = []
     _list = []
     for c in lxc.list_containers():
         container = lxc.Container(c)
         schema = ContainerSchema()
         result = schema.dump(container)
-        #~ pprint(result)
-        #~ print(result.data['settings'])
-
-        #~ if container.running:
-            #~ osrelease = container.attach_wait(lxc.attach_run_command, ["cat", "/etc/os-release"])
-            #~ print(osrelease)
         _list.append(result[0])
     return jsonify(_list)
-    
+
+
 @mod.route('/api/v1/container/<name>/')
 @api_auth()
 def get_container(name):
-    import lxc
     container = lxc.Container(name)
     schema = ContainerSchema()
     result = schema.dump(container)
     return jsonify(result[0])
 
-#~ @mod.route('/api/v1/container/<name>/')
-#~ @api_auth()
-#~ def get_container(name):
-    #~ return jsonify(lxc.info(name))
 
-
-@mod.route('/api/v1/container/<name>/', methods=['POST'])
+@mod.route('/api/v1/container/config/<name>/', methods=['POST'])
 @api_auth()
-def post_container(name):
+def configure_container(name):
+    container = lxc.Container(name)
+    data = request.get_json(force=True)
+    if data is None:
+        return jsonify({'status':"error", 'error':"Bad request"}), 400
+    container_config = ConfigObj(container.config_file_name)
+    for option, value in data.items():
+        if len(value) > 0:
+            if option.startswith('lxc.') is False:
+                option = 'lxc.{}'.format(option)
+            container_config[option] = value
+            container_config.write()
+    result = ContainerSchema().dump(lxc.Container(name))
+    return jsonify(result[0])
+
+
+@mod.route('/api/v1/container/state/<name>/', methods=['POST'])
+@api_auth()
+def container_state(name):
     data = request.get_json(force=True)
     if data is None:
         return jsonify(status="error", error="Bad request"), 400
+    container = lxc.Container(name)
+    action = data['action']
+    if action == "stop" and container.running:
+        container.stop()
+        container.wait("STOPPED", 3)
+    elif action == "start" and not container.running:
+        container.start()
+        container.wait("RUNNING", 3)
+    elif action == "freeze" and container.running:
+        container.freeze()
+        container.wait("FREEZE", 3)
+    elif action == "unfreeze" and container.state == 'FROZEN':
+        container.unfreeze()
+        container.wait("UNFREEZE", 3)
+    return jsonify(state=container.state), 200
+    
 
-    status = data['action']
-    try:
-        if status == "stop":
-            lxc.stop(name)
-            return jsonify(status="ok"), 200
-        elif status == "start":
-            lxc.start(name)
-            return jsonify(status="ok"), 200
-        elif status == "freeze":
-            lxc.freeze(name)
-            return jsonify(status="ok"), 200
-
+@mod.route('/api/v1/container/operation/<name>/', methods=['POST'])
+@api_auth()
+def container_operation(name):
+    data = request.get_json(force=True)
+    if data is None:
         return jsonify(status="error", error="Bad request"), 400
-    except lxc.ContainerDoesntExists:
-        return jsonify(status="error", error="Container doesn' t exists"), 409
+    container = lxc.Container(name)
+    operation = data['operation']
+    if operation == "destroy":
+        container.destroy()
+    elif operation == "copy" and 'new_name' in data:
+        clone = container.clone(data['new_name'])
+    elif operation == "snapshot_create":
+        container.snapshot()
+    elif operation == "snapshot_restore" and 'snapshot_name' in data:
+        container.snapshot_restore(data['snapshot_name'])
+    elif operation == "snapshot_destroy" and 'snapshot_name' in data:
+        container.snapshot_destroy(data['snapshot_name'])
+    return jsonify(state=container.state), 200
 
 
 @mod.route('/api/v1/container/', methods=['PUT'])

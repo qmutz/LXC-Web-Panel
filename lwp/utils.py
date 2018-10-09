@@ -1,9 +1,113 @@
 import os, sys
 import time
+import subprocess
 import hashlib
 
 from flask import session, flash, request, jsonify
 from lwp.config import ConfigParser, read_config_file
+from marshmallow import Schema, fields, pprint
+
+def format_release(output):
+    if 'NAME' in output.decode():
+        release = {}
+        for line in output.decode().split('\n'):
+            if '=' in line:
+                splitted = line.split('=')
+                release[splitted[0]] = splitted[1].replace('"','')
+    else:
+        release = {'PRETTY_NAME':output.decode().strip()}
+    return release
+
+
+class ContainerSchema(Schema):
+    name = fields.Str()
+    state = fields.Str()
+    init_pid = fields.Str()
+    config_file_name = fields.Str()
+    running = fields.Bool()
+    stopped = fields.Bool()
+    frozen = fields.Bool()
+    #~ interfaces = fields.List(fields.String)
+    interfaces = fields.Function(lambda obj: obj.get_interfaces())
+    snapshots = fields.Function(lambda obj: obj.snapshot_list())
+    ips = fields.Function(lambda obj: obj.get_ips())
+    #~ max_mem = fields.Function(lambda obj: obj.get_cgroup_item("memory.limit_in_bytes"))
+    runtime = fields.Method('get_runtime_values')
+    settings = fields.Method('get_settings')
+    os_release = fields.Method('get_os_release')
+    
+    def get_os_release(self, obj):
+        release_files = ('os-release','lsb-release','fedora-release','redhat-release','centos-release','plamo-release')
+        output = False
+        for release_file in release_files:
+            cmd = "cat {}/etc/{}".format(obj.get_config_item('lxc.rootfs'),release_file)
+            try:
+                output = subprocess.check_output(cmd, shell=True)
+            except: pass
+            if output:
+                return format_release(output)
+                
+    def get_runtime_values(self, obj):
+        cgroups = [
+            'memory.usage_in_bytes',
+            'memory.limit_in_bytes',
+            #~ 'lxc.cgroup.memory.memsw.limit_in_bytes'
+        ]
+        to_int = ['memory.limit_in_bytes','memory.usage_in_bytes',]
+        values = {
+            'memory.usage_in_bytes':0,
+        }
+        for cgroup in cgroups:
+            try:
+                values[cgroup] = obj.get_cgroup_item(cgroup)
+            except: pass
+        #~ print(values)
+        for to_int_key in to_int:
+            if to_int_key in values:
+                values[to_int_key] = int(values[to_int_key])
+        return values
+        
+    def get_settings(self, obj):
+        network_settings = [
+            'lxc.network.type',
+            'lxc.network.script_up',
+            'lxc.network.script_down',
+            'lxc.network.link',
+            'lxc.network.flags',
+            'lxc.network.hwaddr',
+            'lxc.network.ipv4',
+            'lxc.network.ipv4gw',
+            'lxc.network.ipv6',
+            'lxc.network.ipv6gw',
+        ]
+        settings = [
+            'lxc.rootfs',
+            'lxc.rootfs.backend',
+            'lxc.tty',
+            'lxc.utsname',
+            'lxc.arch',
+            'lxc.loglevel',
+            'lxc.logfile',
+            'lxc.start.auto',
+            'lxc.start.delay',
+            'lxc.start.order',
+            'lxc.cgroup.cpuset.cpus',
+            'lxc.cgroup.cpuset.shares',
+            'lxc.cgroup.memory.limit_in_bytes'
+        ]
+        values = {}
+        for setting in settings:
+            values[setting.replace('lxc.','')] = obj.get_config_item(setting)
+        values['networks'] = {}
+        count = 0
+        networks = set(obj.get_config_item('lxc.network'))
+        for network in networks:
+            values['networks'][network] = {}
+            for nk in network_settings:
+                new_key = nk.replace('lxc.network.','lxc.network.{}.'.format(count))        
+                values['networks'][network][nk.replace('lxc.network.','')] = obj.get_config_item(new_key)
+            count +=1
+        return values
 
 """
 cgroup_ext is a data structure where for each input of edit.html we have an array with:
@@ -44,9 +148,9 @@ cgroup_ext = {
     'hook_start': ['lxc.hook.start', file_match, 'Container start hook updated'],
     'hook_post_stop': ['lxc.hook.post-stop', file_match, 'Container post hook updated'],
     'hook_clone': ['lxc.hook.clone', file_match, 'Container clone hook updated'],
-    'start_auto': ['lxc.start.auto', '^(0|1)$', 'Autostart saved'],
-    'start_delay': ['lxc.start.delay', '^[0-9]*$', 'Autostart delay option updated'],
-    'start_order': ['lxc.start.order', '^[0-9]*$', 'Autostart order option updated']
+    'start.auto': ['lxc.start.auto', '^(0|1)$', 'Autostart saved'],
+    'start.delay': ['lxc.start.delay', '^[0-9]*$', 'Autostart delay option updated'],
+    'start.order': ['lxc.start.order', '^[0-9]*$', 'Autostart order option updated']
 }
 
 

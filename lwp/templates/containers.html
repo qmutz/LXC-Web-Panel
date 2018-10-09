@@ -1,0 +1,233 @@
+{% set td = {'RUNNING':'success','frozen':'info','stopped':'important'} %}
+{% set tr = {'RUNNING':'success','frozen':'info','stopped':'error'} %}
+{% set disabled = {'RUNNING':'success','FROZEN':'info','STOPPED':'important'} %}
+{% extends "layout.html" %}
+{% block title %}Containers{% endblock %}
+{% block content %}
+<div class="col-lg-12">
+{{ super() }}
+<div class="card card-border-secondary" style="margin-top:60px">
+    <div class="card-header">
+        <a class="btn btn-primary btn-lg float-right" data-toggle="modal" data-target="#createCT">
+             Create container
+        </a>
+        <h2>Containers</h2>
+    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>OS</th>
+                <th>State</th>
+                <th style="text-align:right;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for container in containers %}
+                <tr class="{{ tr[container.state] }}">
+                    <td style="width:55%">
+                        <a href="{{ url_for('main.edit',container_name=container.name) }}" title="Click to edit {{container.name}}">
+                            <h4>
+                                {{container.name}}
+                            </h4>
+                            <p>
+                                {{container['settings']['utsname']}}&nbsp;
+                                {% for network in container['settings']['networks'].values() %}
+                                    {% if network.ipv4|length > 0 %}
+                                        / {% for ip in network.ipv4 %}{{ip}}{% endfor %}
+                                    {% endif %}
+                                {% endfor %}
+                            </p>
+                        </a>
+                    </td>
+                    <td>{{container.os_release.PRETTY_NAME}}<br><span class="text-muted">{{container['settings']['arch']}}</span></td>
+                    <td>
+                        <div  style="vertical-align:middle;text-align:center;line-height:5em;">
+                        {% if container.state == 'RUNNING' %}
+                            <i class="fas fa-circle fa-2x text-success" aria-hidden="true"></i>&nbsp;
+                            <br>
+                            <span id="{{container.name}}">{{ render_memory_wrapper(container['runtime']['memory.usage_in_bytes'], container['runtime']['memory.limit_in_bytes']) }}</span>
+                        {% elif container.state == 'FROZEN' %}
+                            <i class="fas fa-circle fa-2x text-warning" aria-hidden="true"></i>&nbsp;
+                        {% else %}
+                            <i class="fas fa-circle fa-2x text-muted" aria-hidden="true"></i>&nbsp;
+                        {% endif %}
+
+                        </div>
+                    </td>
+
+                    <td>
+                        <div class="btn-toolbar justify-content-between float-right" role="toolbar">
+                            <div class="btn-group btn-group-toggle">
+                                {% set start_action = {'STOPPED':'start','FROZEN':'unfreeze'} %}
+                                <a class="btn btn-secondary{% if container.state == 'RUNNING' %} disabled{% endif %}"{% if container.state == 'STOPPED' or container.state == 'FROZEN' %} href="{{ url_for('main.action', name=container.name, action=start_action[container.state], next=request.path) }}"{% endif %}>
+                                    Start
+                                </a>
+                                <a class="btn btn-secondary{% if container.state == 'STOPPED' %} disabled{% endif %}"{% if container.state == 'RUNNING' or container.state == 'FROZEN' %} href="{{ url_for('main.action', name=container.name, action='stop', next=request.path) }}"{% endif %}>
+                                    Stop
+                                </a>
+                                <a class="btn btn-secondary{% if container.state == 'FROZEN' or container.state == 'STOPPED' %} disabled{% endif %}"{% if container.state == 'RUNNING' %} href="{{ url_for('main.action', name=container.name, action='freeze', next=request.path) }}"{% endif %}> 
+                                    Freeze
+                                </a>
+                                <div class="dropdown">
+                                  <button class="btn btn-link dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <i class="fas fa-ellipsis-h fa-2x" aria-hidden="true"></i>
+                                  </button>
+                                  <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                        <a href="#" class="dropdown-item" data-toggle="modal" data-target="#copyCT{{container.name}}">Copy</a>
+                                        <a href="#" class="dropdown-item" data-toggle="modal" data-target="#backupCT{{container.name}}">Backup</a>
+                                        <a href="{{url_for('main.action', action='snapshot_create', name=container.name, next=request.path) }}" class="dropdown-item" data-container-name="{{container.name}}">Snapshot</a>
+                                        <a href="#" class="dropdown-item text-danger destroy" {% if session.su == 'Yes' and container.state == 'STOPPED' %}data-container-name="{{container.name}}"{% endif %}>
+                                        Destroy
+                                        </a>
+                                  </div>
+
+                            </div>
+                            </div>
+                        </div>
+                        {% with container_name=container.name %}
+                        {% include "includes/modal_clone.html" %}
+                        {% include "includes/modal_backup.html" %}
+                        {% include "includes/modal_destroy.html" %}
+                        {% endwith %}
+                    </td>
+                    </tr>            
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{#% if session.su == 'Yes' %}
+    {% include "includes/modal_reboot.html" %}
+    {% include "includes/modal_create.html" %}
+
+    {% if containers|length > 0 %}
+        {% include "includes/modal_clone.html" %}
+        {% include "includes/modal_backup.html" %}
+        {% include "includes/modal_destroy.html" %}
+    {% endif %}
+{% endif %#}
+
+{% endblock %}
+
+{% macro memory_color(value) -%}{% if value != 0 %}{% if 0 <= value <= 511 %}success{% elif 512 <= value < 980 %}warning{% else %}important{% endif %}{% endif %}{%- endmacro %}
+{% macro render_memory_wrapper(value, limit) -%}
+    {% if value != 0 %}
+        <span class="badge badge-{{ memory_color(value) }}">{{ value }}{% if limit != '' %} / {{ limit }}{% endif %} MB</span>
+    {% else %}
+        <span class="badge badge-success"></span>
+    {% endif %}
+{%- endmacro %}
+
+{% block script %}
+<script type="text/javascript">
+
+            function refreshMemoryContainers(){
+                $.getJSON('{{ url_for('main.refresh_memory_containers', name='containers') }}', function(data) {
+                    data = data.data;
+                    for (i in data) {
+                        var el = $('#'+data[i].name+' span');
+                        if (data[i].runtime.memory.usage_in_bytes == '') {
+                            el.text(data[i].runtime.memory.usage_in_bytes + ' MB');
+                        } else {
+                            el.text(data[i].runtime.memory.usage_in_bytes + " / " + data[i].settings.memlimit + ' MB');
+                        }
+                        el[0].className = el[0].className.replace(/label\-(success|warning|danger)/g,'badge-'+memory_color(data[i].memusg, data[i].settings.memlimit));
+                    }
+                });
+
+                $('#home-load').fadeOut();
+            }
+
+            function memory_color(value, total){
+                if(total == '') {
+                    if(value != 0)
+                        if ('0' <= value && value <= '512')
+                            return 'success';
+                        else if ('512' <= value && value < '1024')
+                            return 'warning';
+                        else
+                            return 'danger';
+                }
+                else {
+                    value = value / total;
+                    if (0 <= value && value <= 0.6)
+                         return 'success';
+                    else if (0.6 <= value && value < 0.8)
+                        return 'warning';
+                    else
+                        return 'danger';
+                }
+            }
+
+            //~ function refresh(){
+                //~ $('#home-load').fadeIn();
+
+                //~ $.getJSON('{{ url_for('main.refresh_info') }}', function(data) {
+                    //~ $('#uptime').text(data.uptime.day +' day(s) '+ data.uptime.time).fadeIn();
+
+                    //~ $('#cpu-usage').text(data.cpu +'%').fadeIn();
+                    //~ $('#cpu-usage-bar').css({'width':data.cpu + '%'});
+
+                    //~ $('#disk-usage').text(data.disk.used +' ('+ data.disk.free +' free)').fadeIn();
+                    //~ $('#disk-usage-bar').css({'width':data.disk.percent});
+
+                //~ });
+            //~ }
+
+            $(function() {
+                refreshMemoryContainers();
+                window.setInterval('refreshMemoryContainers()', 6000);
+            });
+
+            {% if session.su == 'Yes' %}$(document).ready(function(){
+
+                $(".destroy").on('click',function(e){
+                    console.log("clicked");
+                    $(".destroy-link").attr('href',"{{url_for('main.action', action='destroy') }}" + "&next={{request.path}}&name=" + $(this).data('container-name'));
+                    $('.modal-body #destroy-container-name').text($(this).data('container-name'));
+                    var container_id = '#destroyCT' + $(this).data('container-name');
+                    console.log(container_id);
+                    $(container_id).modal('show');
+                });
+                // Create CT
+                $('#advancedcreate').click(function(e){ e.preventDefault(); $('#advancedcreatediv').slideToggle(); });
+
+                // Copy CT
+                $('#advancedcopy').click(function(e){ e.preventDefault(); $('#advancedcopydiv').slideToggle(); });
+
+                $(".backingstore").on('change',function(){
+                        var _val = $(this).val();
+                        var _lvm = $(this).closest('.advanced-wrapper').find('.lvm');
+                        var _zfs = $(this).closest('.advanced-wrapper').find('.zfs');
+                        var _directory = $(this).closest('.advanced-wrapper').find('.directory');
+                        if( _val == 'lvm'){
+                            _lvm.removeClass("d-none");
+                            _directory.addClass("d-none");
+                            _zfs.addClass("d-none");
+                        }
+                        else if ( _val == 'directory' ){
+                            _directory.removeClass("d-none");
+                            _lvm.addClass("d-none");
+                            _zfs.addClass("d-none");
+                        }
+                        else if ( _val == 'zfs'){
+                            _zfs.removeClass("d-none");
+                            _lvm.addClass("d-none");
+                            _directory.addClass("d-none");
+                        }
+                        else{
+                            _zfs.addClass("d-none");
+                            _directory.addClass("d-none");
+                            _lvm.addClass("d-none");
+                        }
+                    });
+
+                    $('.modalbutton').on('click', function () {
+                        $('.buttons-modal-footer').addClass("d-none");
+                        $('.loader-modal-footer').removeClass("d-none");
+                    })
+            });{% endif %}
+</script>
+
+{% endblock %}

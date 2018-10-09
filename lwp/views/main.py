@@ -9,7 +9,7 @@ import requests
 from flask import Blueprint, request, session, g, redirect, url_for, abort, render_template, flash, jsonify
 from flask import current_app as app
 import lwp
-import lwp.lxclite as lxc
+#~ import lwp.lxclite as lxc
 from lwp.utils import hash_passwd, cgroup_ext
 from lwp.config import read_config_file, ConfigParser
 from lwp.decorators import if_logged_in
@@ -48,6 +48,25 @@ class GantryClient():
         
     def build_url(self, endpoint):
         return '{}/{}/'.format(self.default_url, endpoint)
+        
+    def set_state(self, name, state):
+        data = {'action':state}
+        r = requests.post(self.build_url('container/state/{}'.format(name)), params=self.get_payload(),json=data)
+        return r.json()
+        
+    def make_operation(self, name, operation, **kwargs):
+        data = {'operation':operation}
+        for key, value in kwargs.items():
+            data[key] = value
+        r = requests.post(self.build_url('container/operation/{}'.format(name)), params=self.get_payload(),json=data)
+        return r.status_code
+        
+    def set_config(self, name, data):
+        print(data)
+        #~ for key, value in kwargs.items():
+            #~ data[key] = value
+        r = requests.post(self.build_url('container/config/{}'.format(name)), params=self.get_payload(),json=data)
+        return r.json()
         
     def get_host(self):
         r = requests.get(self.build_url('host'), params=self.get_payload())
@@ -142,23 +161,45 @@ def home():
     Home page function, list containers
     """
     gantry = GantryClient(config)
-    host_info = gantry.get_host()
+    host = gantry.get_host()
     containers = gantry.get_containers()
     clonable_containers = []
     for container in containers:
-        if container['state'] == 'stopped':
-            clonable_containers.append(container['container'])
+        if container['state'] == 'STOPPED':
+            clonable_containers.append(container['name'])
     context = {
         'containers': containers,
         'clonable_containers': clonable_containers,
-        'dist': host_info['distribution'],
-        'host': host_info['hostname'],
+        #~ 'dist': host_info['distribution'],
+        'host': host,
         'templates': lwp.get_templates_list(),
-        'storage_repos': storage_repos,
+        #~ 'storage_repos': storage_repos,
         'auth': AUTH,
     }
     return render_template('index.html', **context)
-
+    
+@mod.route('/containers')
+@if_logged_in()
+def containers():
+    """
+    Home page function, list containers
+    """
+    gantry = GantryClient(config)
+    host = gantry.get_host()
+    containers = gantry.get_containers()
+    clonable_containers = []
+    for container in containers:
+        if container['state'] == 'STOPPED':
+            clonable_containers.append(container['name'])
+    context = {
+        'containers': containers,
+        'clonable_containers': clonable_containers,
+        'host': host,
+        'templates': lwp.get_templates_list(),
+        #~ 'storage_repos': storage_repos,
+        'auth': AUTH,
+    }
+    return render_template('containers.html', **context)
 
 @mod.route('/about')
 @if_logged_in()
@@ -185,54 +226,66 @@ def edit(container_name):
     host_memory = lwp.host_memory_usage()
     gantry = GantryClient(config)
     container = gantry.get_container(container_name)
+    host = gantry.get_host()
     #~ info = lxc.info(container)
     #~ cfg = lwp.get_container_settings(container, info['state'])
     if request.method == 'POST':
         form = request.form.copy()
         # convert boolean in correct value for lxc, if checkbox is inset value is not submitted inside POST
-        form['flags'] = 'up' if 'flags' in form else 'down'
-        form['start_auto'] = '1' if 'start_auto' in form else '0'
+        form['network.flags'] = 'up' if 'flags' in form else 'down'
+        form['start.auto'] = '1' if 'start.auto' in form else '0'
 
         # if memlimits/memswlimit is at max values unset form values
         if 'memlimit' in form and int(form['memlimit']) == host_memory['total']:
             form['memlimit'] = ''
         if 'swlimit' in form and int(form['swlimit']) == host_memory['total'] * 2:
             form['swlimit'] = ''
-
+        data = {}
+        del form['submit']
         for option in form.keys():
+            if option.startswith('ic-') is False and option.startswith('_') is False:
+                data[option] = form[option]
+        #~ print("main wtf")
+        container = gantry.set_config(container_name, data)
+        #~ print("after request main wtf")
+        #~ for option in form.keys():
             # if the key is supported AND is different
-            if option in cfg.keys() and form[option] != cfg[option]:
+            #~ if option in cfg.keys() and form[option] != cfg[option]:
                 # validate value with regex
-                if re.match(cgroup_ext[option][1], form[option]):
-                    lwp.push_config_value(cgroup_ext[option][0], form[option], container=container)
-                    flash(cgroup_ext[option][2], 'success')
-                else:
-                    flash('Cannot validate value for option {}. Unsaved!'.format(option), 'error')
-
+            
+            
+            #~ if re.match(cgroup_ext[option][1], form[option]):
+                #~ lwp.push_config_value(cgroup_ext[option][0], form[option], container=container)
+                #~ flash(cgroup_ext[option][2], 'success')
+            #~ else:
+                #~ flash('Cannot validate value for option {}. Unsaved!'.format(option), 'error')
+            
         # we should re-read container configuration now to be coherent with the newly saved values
-        cfg = lwp.get_container_settings(container)
+        #~ cfg = lwp.get_container_settings(container)
 
-        info = lxc.info(container)
-    infos = {'status': info['state'], 'pid': info['pid'], 'memusg': lwp.memory_usage(container)}
+        #~ info = lxc.info(container)
+    #~ infos = {'status': container['state'], 'pid': info['pid'], 'memusg': lwp.memory_usage(container)}
+    #~ infos = {'status': container['state'], 'memusg': lwp.memory_usage(container['name'])}
     # prepare a regex dict from cgroups_ext definition
     regex = {}
     for k, v in cgroup_ext.items():
         regex[k] = v[1]
 
-    snapshots = lxc.snapshots(container)
+    #~ snapshots = lxc.snapshots(container)
     context = {
-        'all_info': info,
-        'snapshots': snapshots,
-        'containers': lxc.ls(),
+        #~ 'all_info': infos,
+        #~ 'snapshots': snapshots,
+        #~ 'containers': lxc.ls(),
         'container': container,
-        'infos': infos,
-        'settings': cfg,
-        'host_memory': host_memory,
-        'storage_repos': storage_repos,
+        'storage_repository': config['storage_repository'],
+        #~ 'infos': infos,
+        #~ 'settings': container['settings'],
+        #~ 'host_memory': host_memory,
         'regex': regex,
-        'clonable_containers': lxc.listx()['STOPPED'],
-        'dist': lwp.name_distro(),
-        'host': socket.gethostname(),
+        
+        #~ 'clonable_containers': lxc.listx()['STOPPED'],
+        #~ 'dist': lwp.name_distro(),
+        'host': host,
     }
     return render_template('edit.html', **context)
 
@@ -380,12 +433,11 @@ def lwp_users():
                     update_user['password'] = hash_passwd(request.form['password1'])
                 elif request.form['password1'] and request.form['password2'] and request.form['password1'] != request.form['password2']:
                     flash(u'No password match. Not changed', 'error')
-                print(update_user)
                 gantry.update_user(request.form['id'],update_user)
                 users = gantry.get_users()
                 su_users = []
                 for u in users:
-                    if u['su'] == Yes:
+                    if u['su'] == 'Yes':
                         su_users.append(u)
                 flash(u'Updated', 'success')
             else:
@@ -413,28 +465,20 @@ def lwp_tokens():
     tokens = gantry.get_tokens()
     if request.method == 'POST':
         if request.form['action'] == 'add':
-            # we want to add a new token
             token = request.form['token']
             description = request.form['description']
             username = session['username']  # we should save the username due to ldap option
             #~ ApiTokens.create(username=username,description=description,token=token)
             gantry.add_token(token,description,username)
-            #~ g.db.execute("INSERT INTO api_tokens (username, token, description) VALUES(?, ?, ?)", [username, token,
-                                                                                                   #~ description])
-            #~ g.db.commit()
             tokens = gantry.get_tokens()
             flash(u'Token %s successfully added!' % token, 'success')
 
     if request.args.get('action') == 'del':
         token = request.args['token']
         gantry.delete_token(token)
-        #~ g.db.execute("DELETE FROM api_tokens WHERE token=?", [token])
-        #~ g.db.commit()
         tokens = gantry.get_tokens()
         flash(u'Token %s successfully deleted!' % token, 'success')
         return redirect(url_for('main.lwp_tokens'))
-    #~ tokens = query_db("SELECT description, token, username FROM api_tokens ORDER BY token DESC")
-    #~ tokens = get_tokens()
     context = {
         'tokens': tokens,
         
@@ -458,10 +502,6 @@ def checkconfig():
     context = {
         'host': host,
         'checks': checks['checks'],
-        #~ 'containers': lxc.ls(),
-        #~ 'cfg': lxc.checkconfig(),
-        #~ 'dist': lwp.name_distro(),
-        #~ 'host': socket.gethostname(),
     }
     return render_template('checkconfig.html', **context)
 
@@ -473,54 +513,45 @@ def action():
     Manage all actions related to containers
     lxc-start, lxc-stop, etc...
     """
-    act = request.args['action']
+    action = request.args['action']
+    act = action
     name = request.args['name']
-    
-    # TODO: refactor this method, it's horrible to read
+    gantry =  GantryClient(config)
     if act == 'start':
-        try:
-            
-            if lxc.start(name) == 0:
-                time.sleep(1)  # Fix bug : "the container is randomly not displayed in overview list after a boot"
-                flash(u'Container %s started successfully!' % name, 'success')
-            else:
-                flash(u'Unable to start %s!' % name, 'error')
-        except lxc.ContainerAlreadyRunning:
-            flash(u'Container %s is already running!' % name, 'error')
+        response = gantry.set_state(name,action)
+        if response['state'] == 'RUNNING':
+            flash(u'Container %s started successfully!' % name, 'success')
+        else:
+            flash(u'Unable to start %s!' % name, 'danger')
     elif act == 'stop':
-        try:
-            if lxc.stop(name) == 0:
-                flash(u'Container %s stopped successfully!' % name, 'success')
-            else:
-                flash(u'Unable to stop %s!' % name, 'error')
-        except lxc.ContainerNotRunning:
-            flash(u'Container %s is already stopped!' % name, 'error')
-    elif act == 'freeze':
-        try:
-            if lxc.freeze(name) == 0:
-                flash(u'Container %s frozen successfully!' % name, 'success')
-            else:
-                flash(u'Unable to freeze %s!' % name, 'error')
-        except lxc.ContainerNotRunning:
-            flash(u'Container %s not running!' % name, 'error')
-    elif act == 'unfreeze':
-        try:
-            if lxc.unfreeze(name) == 0:
-                flash(u'Container %s unfrozen successfully!' % name, 'success')
-            else:
-                flash(u'Unable to unfeeze %s!' % name, 'error')
-        except lxc.ContainerNotRunning:
-            flash(u'Container %s not frozen!' % name, 'error')
-    elif act == 'destroy':
+        response = gantry.set_state(name,action)
+        if response['state'] == 'STOPPED':
+            flash(u'Container %s stopped successfully!' % name, 'success')
+        else:
+            flash(u'Unable to stop %s!' % name, 'danger')
+    elif action == 'freeze':
+        response = gantry.set_state(name,action)
+        if response['state'] == 'FROZEN':
+            flash(u'Container %s frozen successfully!' % name, 'success')
+        else:
+            flash(u'Unable to freeze %s!' % name, 'danger')
+    elif action == 'unfreeze':
+        response = gantry.set_state(name,action)
+        if response['state'] != 'FROZEN':
+            flash(u'Container %s unfrozen successfully!' % name, 'success')
+        else:
+            flash(u'Unable to unfreeze %s!' % name, 'danger')
+    elif action == 'destroy':
         if session['su'] != 'Yes':
             return abort(403)
-        try:
-            if lxc.destroy(name) == 0:
-                flash(u'Container %s destroyed successfully!' % name, 'success')
-            else:
-                flash(u'Unable to destroy %s!' % name, 'error')
-        except lxc.ContainerDoesntExists:
-            flash(u'The Container %s does not exists!' % name, 'error')
+        gantry.make_operation(name,action)
+    elif action == 'snapshot_create':
+        gantry.make_operation(name, action)
+    elif action == 'snapshot_destroy' and 'snapshot_name' in request.args:
+        gantry.make_operation(name, action, snapshot_name=request.args['snapshot_name'])
+        
+    elif action == 'copy' and 'new_name' in request.args:
+        gantry.make_operation(name, action, new_name=request.args['new_name'])
     elif act == 'reboot' and name == 'host':
         if session['su'] != 'Yes':
             return abort(403)
@@ -531,12 +562,11 @@ def action():
             flash(u'System will now restart!', 'success')
         except subprocess.CalledProcessError:
             flash(u'System error!', 'error')
-    elif act == 'push':
-        # TODO: implement push action
-        pass
+    if 'next' in request.args:
+        return redirect(request.args['next'])
     try:
         if request.args['from'] == 'edit':
-            return redirect(url_for('main.edit', container=name))
+            return redirect(url_for('main.edit', container_name=name))
         else:
             return redirect(url_for('main.home'))
     except KeyError:
@@ -555,7 +585,6 @@ def create_container():
         name = request.form['name']
         template = request.form['template']
         command = request.form['command']
-
         if re.match('^(?!^containers$)|[a-zA-Z0-9_-]+$', name):
             storage_method = request.form['backingstore']
 
@@ -649,7 +678,7 @@ def create_container():
 
 @mod.route('/action/snapshot-container', methods=['GET', 'POST'])
 @if_logged_in()
-def snapshot_container():
+def candeletesnapshot_container():
     """
     Operations on snapshots, create, delete, restore
     """
@@ -664,7 +693,6 @@ def snapshot_container():
             restore_snapshot = False
         if re.match('^(?!^containers$)|[a-zA-Z0-9_-]+$', name):
             out = None
-
             try:
                 out = lxc.snapshot(name,delete_snapshot=delete_snapshot,restore_snapshot=restore_snapshot)
             except lxc.SnapshotError:
@@ -744,9 +772,9 @@ def backup_container():
             backup_file = lxc.backup(container=container, sr_type=sr_type, destination=sr_path)
             backup_failed = False
         except lxc.ContainerDoesntExists:
-            flash(u'The Container %s does not exist !' % container, 'error')
+            flash(u'The Container %s does not exist !' % container, 'danger')
         except lxc.DirectoryDoesntExists:
-            flash(u'Local backup directory "%s" does not exist !' % sr_path, 'error')
+            flash(u'Local backup directory "%s" does not exist !' % sr_path, 'danger')
         except lxc.NFSDirectoryNotMounted:
             flash(u'NFS repository "%s" not mounted !' % sr_path, 'error')
         except subprocess.CalledProcessError:
@@ -776,21 +804,29 @@ def refresh_info():
 @mod.route('/_refresh_memory_<name>')
 @if_logged_in()
 def refresh_memory_containers(name=None):
+    gantry = GantryClient(config)
+    host = gantry.get_host()
     if name == 'containers':
-        containers_running = lxc.running()
+        all_containers = gantry.get_containers()
+        #~ containers_running = lxc.running()
         containers = []
-        for container in containers_running:
-            container = container.replace(' (auto)', '')
-            containers.append({'name': container, 'memusg': lwp.memory_usage(container),
-                               'settings': lwp.get_container_settings(container)})
+        for container in all_containers:
+            if container['state'] == 'RUNNING':
+            #~ container = container.replace(' (auto)', '')
+                containers.append({'name': container['name'],
+                                'runtime': container['runtime']['memory.usage_in_bytes'],
+                               'settings': container['settings']
+                               })
         return jsonify(data=containers)
     elif name == 'host':
-        return jsonify(lwp.host_memory_usage())
+        #~ return jsonify(lwp.host_memory_usage())
+        return jsonify(host['memory'])
     return jsonify({'memusg': lwp.memory_usage(name)})
 
 
 @mod.route('/_check_version')
 @if_logged_in()
 def check_version():
-    print(lwp.check_version())
-    return jsonify(lwp.check_version())
+    gantry = GantryClient(config)
+    host = gantry.get_host()
+    return jsonify(host['version'])

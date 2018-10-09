@@ -1,6 +1,15 @@
 .btn-primary {
     color: #fff !important;
 }
+
+
+.btn-link.dropdown-toggle::after, 
+.btn-link.dropdown-toggle::before {
+    border:none;
+}
+.btn-link:hover {
+    text-decoration: none;
+}
 body {
   overflow-x: hidden;
 }

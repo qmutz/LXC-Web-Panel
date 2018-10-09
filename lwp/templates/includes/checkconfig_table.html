@@ -12,12 +12,16 @@
     <table class="table table-hover">
         <tbody>
         {% for i in checks %}
-        {% if i.split(':')[1] == 'enabled' or i.split(':')[1] == 'missing' or i.split(':')[1] == 'required' or '---' in i %}
         <tr>
             <td>{% if '---' in i %}<h3>{{ i.split(':')[0].replace('---','') }}</h3>{% else %}{{ i.split(':')[0] }}{% endif %}</td>
-            <td width="15px"><i class="{% if i.split(':')[1] == 'enabled' %}fa fa-check text-success{% elif i.split(':')[1] == 'missing' %}fa fa-exclamation text-warning{% elif i.split(':')[1] == 'required' %}fa fa-times text-danger{% endif %}"></i></td>
+            <td width="15px">
+                    {% if ':' in i %}
+                    <i class="fas {% if i.split(':')[1].strip() ==  'enabled' %}fas fa-check text-success{% elif i.split(':')[1].strip() == 'missing' %}fas fa-exclamation text-warning{% elif i.split(':')[1].strip() == 'required' %}fas fa-times text-danger{% endif %}"></i>
+                    
+                    {% endif %}
+                </td>
         </tr>
-        {% endif %}{% endfor %}
+        {% endfor %}
         </tbody>
     </table>
 </div>

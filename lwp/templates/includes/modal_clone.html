@@ -1,33 +1,29 @@
-<div id="copyCT{{container_name}}" class="modal" tabindex="-1" role="dialog" aria-labelledby="copyCTLabel" aria-hidden="true">
+<div id="copyCT{{container_name}}" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="copyCTLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
-    <form method="post" action="{{ url_for('main.copy_container') }}">
+    <form method="get" action="{{ url_for('main.action') }}">
         <div class="modal-header">
             <h3 id="copyCTLabel">{% if container_name %}Copy {{container_name}}{% else %}Choose container to copy{% endif %}</h3>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
         </div>
         <div class="modal-body">
             <div class="form-group">
+                <input type="hidden" name="action" value="copy" />
                 {% if container_name %}
-                    <input type="hidden" name="orig" value="{{container_name}}" />
+                    <input type="hidden" name="name" value="{{container_name}}" />
                 {% else %}
-                <select class="form-control form-control-lg" id="selectContainer" name="orig">
-                        {% for c in clonable_containers %}
-                            <option value="{{c}}">{{c}}</option>
-                        {% endfor %}
+                <select class="form-control form-control-lg" id="selectContainer" name="name">
+                    {% for c in clonable_containers %}
+                        <option value="{{c}}">{{c}}</option>
+                    {% endfor %}
                 </select>
                 {% endif %}
-                <input class="form-control form-control-lg" id="inputName" type="text" pattern="^\w[\w.-]+$" placeholder="Copy name" name="name">
+                <input class="form-control form-control-lg" id="inputName" type="text" pattern="^\w[\w.-]+$" placeholder="Copy name" name="new_name">
             </div>
         </div>
 
         <div class="modal-footer">
             <div class="buttons-modal-footer">
-                <!--
-                <div class="switch pull-left" data-on-label="<small>Snapshot</small>" data-off-label="<small>&nbsp;&nbsp;&nbsp;Classic&nbsp;&nbsp;&nbsp;</small>" data-on="success" data-off="primary">
-                    <input type="checkbox" name="snapshot" value="True" />
-                </div>
-                -->
                 {% include 'includes/modal_cancel_btn.html' %}
                 <button type="submit" class="btn btn-primary modalbutton">Copy</button>
             </div>
