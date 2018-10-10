@@ -99,10 +99,10 @@ def install(path):
         with open(conffile, 'w') as configfile:
             config.write(configfile)
         
-        from lwp.database.models import get_database, Users, ApiTokens
+        from lwp.database.models import get_database,Users,ApiTokens,Projects,Hosts,Containers,ContainerTag,Tags
 
         database = get_database()
-        database.create_tables([Users, ApiTokens,])
+        database.create_tables([Users,ApiTokens,Projects,Hosts,Containers,ContainerTag,Tags])
         Users.create(name='Admin',username='admin',su='Yes',password=hash_passwd('admin'))
         ApiTokens.create(username='admin',description='internal',token=internal_token)
         subprocess.check_call('touch {}'.format(exec_path), shell=True)

@@ -1,0 +1,92 @@
+{% extends 'layout.html' %}
+{% block title %}Projects{% endblock %}
+{% block content %}
+<div class="col-lg-12">
+{{ super() }}
+<div class="card card-border-secondary" style="margin-top:60px">
+    <div class="card-header">
+        <a class="btn btn-primary btn-lg float-right" data-toggle="modal" data-target="#createCT">
+             Create project
+        </a>
+        <h2>Projects</h2>
+    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>OS</th>
+                <th>State</th>
+                <th style="text-align:right;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for project in projects %}
+                <tr>
+                    <td style="width:55%">
+                        <a href="{{ url_for('projects.edit',project_name=project.name) }}" title="Click to edit {{project.name}}">
+                            <h4>
+                                {{project.title}}
+                            </h4>
+                            <p>
+                            </p>
+                        </a>
+                    </td>
+                    <td>
+                    </td>
+                    <td>{#
+                        <div  style="vertical-align:middle;text-align:center;line-height:5em;">
+                        {% if project.state == 'RUNNING' %}
+                            <i class="fas fa-circle fa-2x text-success" aria-hidden="true"></i>&nbsp;
+                            <br>
+                            <span id="{{project.name}}">{{ render_memory_wrapper(project['runtime']['memory.usage_in_bytes'], project['runtime']['memory.limit_in_bytes']) }}</span>
+                        {% elif project.state == 'FROZEN' %}
+                            <i class="fas fa-circle fa-2x text-warning" aria-hidden="true"></i>&nbsp;
+                        {% else %}
+                            <i class="fas fa-circle fa-2x text-muted" aria-hidden="true"></i>&nbsp;
+                        {% endif %}
+
+                        </div>
+                        #}
+                    </td>
+
+                    <td>
+                        <div class="btn-toolbar justify-content-between float-right" role="toolbar">
+                            <div class="btn-group btn-group-toggle">{#
+                                {% set start_action = {'STOPPED':'start','FROZEN':'unfreeze'} %}
+                                <a class="btn btn-secondary{% if project.state == 'RUNNING' %} disabled{% endif %}"{% if project.state == 'STOPPED' or project.state == 'FROZEN' %} href="{{ url_for('projects.action', name=project.name, action=start_action[project.state], next=request.path) }}"{% endif %}>
+                                    Start
+                                </a>
+                                <a class="btn btn-secondary{% if project.state == 'STOPPED' %} disabled{% endif %}"{% if project.state == 'RUNNING' or project.state == 'FROZEN' %} href="{{ url_for('projects.action', name=project.name, action='stop', next=request.path) }}"{% endif %}>
+                                    Stop
+                                </a>
+                                <a class="btn btn-secondary{% if project.state == 'FROZEN' or project.state == 'STOPPED' %} disabled{% endif %}"{% if project.state == 'RUNNING' %} href="{{ url_for('projects.action', name=project.name, action='freeze', next=request.path) }}"{% endif %}> 
+                                    Freeze
+                                </a>
+                                <div class="dropdown">
+                                  <button class="btn btn-link dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        <i class="fas fa-ellipsis-h fa-2x" aria-hidden="true"></i>
+                                  </button>
+                                  <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                        <a href="#" class="dropdown-item" data-toggle="modal" data-target="#copyCT{{project.name}}">Copy</a>
+                                        <a href="#" class="dropdown-item" data-toggle="modal" data-target="#backupCT{{project.name}}">Backup</a>
+                                        <a href="{{url_for('projects.action', action='snapshot_create', name=project.name, next=request.path) }}" class="dropdown-item" data-project-name="{{project.name}}">Snapshot</a>
+                                        <a href="#" class="dropdown-item text-danger destroy" {% if session.su == 'Yes' and project.state == 'STOPPED' %}data-project-name="{{project.name}}"{% endif %}>
+                                        Destroy
+                                        </a>
+                                  </div>
+
+                                #}
+                            </div>
+                        </div>
+                        {% with project_name=project.title %}
+                        {% include "includes/modal_clone.html" %}
+                        {% include "includes/modal_backup.html" %}
+                        {% include "includes/modal_destroy.html" %}
+                        {% endwith %}
+                    </td>
+                    </tr>            
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

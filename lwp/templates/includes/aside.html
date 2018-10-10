@@ -1,19 +1,19 @@
 <div class="text-center sidebar-brand" style="padding-top:2em;padding-bottom:1em;margin-bottom:1em">
-    <a class="bg-primary text-white" href="{{ url_for('main.home') }}">
+    <a class="bg-primary text-white" href="{{ url_for('dashboard.home') }}">
         <i class="fas fa-ship fa-6x"></i><br>
         <span>LWP</span>
     </a>
 </div>
 <div class="list-group">
-    <a href="{{ url_for('main.home') }}" id="home-btn" class="text-center bg-primary text-white list-group-item list-group-item-action{% if request.url_rule.endpoint=="main.home" %}active{% endif %}"><i class="fas fa-tachometer-alt fa-2x"></i><br>Dashboard</a>
+    <a href="{{ url_for('dashboard.home') }}" id="home-btn" class="text-center bg-primary text-white list-group-item list-group-item-action{% if request.url_rule.endpoint=="main.home" %}active{% endif %}"><i class="fas fa-tachometer-alt fa-2x"></i><br>Dashboard</a>
     
-    <a href="{{ url_for('main.home') }}" id="proj-btn" class="text-center bg-primary text-white list-group-item list-group-item-action{% if request.url_rule.endpoint=="main.home" %}active{% endif %}"><i class="fas fa-vial fa-2x"></i><br>Projects</a>
+    <a href="{{ url_for('projects.index') }}" id="proj-btn" class="text-center bg-primary text-white list-group-item list-group-item-action{% if request.url_rule.endpoint=="projects.index" %}active{% endif %}"><i class="fas fa-vial fa-2x"></i><br>Projects</a>
     
-    <a href="{{ url_for('main.containers') }}" id="cont-btn" class="text-center bg-primary text-white list-group-item list-group-item-action{% if request.url_rule.endpoint=="main.containers" %}active{% endif %}"><i class="fas fa-server fa-2x"></i><br>Containers</a>
+    <a href="{{ url_for('containers.index') }}" id="cont-btn" class="text-center bg-primary text-white list-group-item list-group-item-action{% if request.url_rule.endpoint=="containers.index" %}active{% endif %}"><i class="fas fa-server fa-2x"></i><br>Containers</a>
 {#
 {% if containers != [] %}
     {% for c in containers %}
-    <a href="{{ url_for('main.edit',container=c) }}" class="list-group-item list-group-item-action {% if request.endpoint=="main.edit" and container==c %}active{% endif %}"><i class="fa fa-hdd-o" aria-hidden="true"></i> {{c}}</a>
+    <a href="{{ url_for('containers.edit',container=c) }}" class="list-group-item list-group-item-action {% if request.endpoint=="containers.edit" and container==c %}active{% endif %}"><i class="fa fa-hdd-o" aria-hidden="true"></i> {{c}}</a>
     {% endfor %}
 {% endif %}
 {% if session.su == 'Yes' %}

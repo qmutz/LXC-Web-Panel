@@ -26,7 +26,7 @@
         {% for container in containers %}
                 <tr class="{{ tr[container.state] }}">
                     <td style="width:55%">
-                        <a href="{{ url_for('main.edit',container_name=container.name) }}" title="Click to edit {{container.name}}">
+                        <a href="{{ url_for('containers.edit',container_name=container.name) }}" title="Click to edit {{container.name}}">
                             <h4>
                                 {{container.name}}
                             </h4>
@@ -60,13 +60,13 @@
                         <div class="btn-toolbar justify-content-between float-right" role="toolbar">
                             <div class="btn-group btn-group-toggle">
                                 {% set start_action = {'STOPPED':'start','FROZEN':'unfreeze'} %}
-                                <a class="btn btn-secondary{% if container.state == 'RUNNING' %} disabled{% endif %}"{% if container.state == 'STOPPED' or container.state == 'FROZEN' %} href="{{ url_for('main.action', name=container.name, action=start_action[container.state], next=request.path) }}"{% endif %}>
+                                <a class="btn btn-secondary{% if container.state == 'RUNNING' %} disabled{% endif %}"{% if container.state == 'STOPPED' or container.state == 'FROZEN' %} href="{{ url_for('containers.action', name=container.name, action=start_action[container.state], next=request.path) }}"{% endif %}>
                                     Start
                                 </a>
-                                <a class="btn btn-secondary{% if container.state == 'STOPPED' %} disabled{% endif %}"{% if container.state == 'RUNNING' or container.state == 'FROZEN' %} href="{{ url_for('main.action', name=container.name, action='stop', next=request.path) }}"{% endif %}>
+                                <a class="btn btn-secondary{% if container.state == 'STOPPED' %} disabled{% endif %}"{% if container.state == 'RUNNING' or container.state == 'FROZEN' %} href="{{ url_for('containers.action', name=container.name, action='stop', next=request.path) }}"{% endif %}>
                                     Stop
                                 </a>
-                                <a class="btn btn-secondary{% if container.state == 'FROZEN' or container.state == 'STOPPED' %} disabled{% endif %}"{% if container.state == 'RUNNING' %} href="{{ url_for('main.action', name=container.name, action='freeze', next=request.path) }}"{% endif %}> 
+                                <a class="btn btn-secondary{% if container.state == 'FROZEN' or container.state == 'STOPPED' %} disabled{% endif %}"{% if container.state == 'RUNNING' %} href="{{ url_for('containers.action', name=container.name, action='freeze', next=request.path) }}"{% endif %}> 
                                     Freeze
                                 </a>
                                 <div class="dropdown">
@@ -76,7 +76,7 @@
                                   <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
                                         <a href="#" class="dropdown-item" data-toggle="modal" data-target="#copyCT{{container.name}}">Copy</a>
                                         <a href="#" class="dropdown-item" data-toggle="modal" data-target="#backupCT{{container.name}}">Backup</a>
-                                        <a href="{{url_for('main.action', action='snapshot_create', name=container.name, next=request.path) }}" class="dropdown-item" data-container-name="{{container.name}}">Snapshot</a>
+                                        <a href="{{url_for('containers.action', action='snapshot_create', name=container.name, next=request.path) }}" class="dropdown-item" data-container-name="{{container.name}}">Snapshot</a>
                                         <a href="#" class="dropdown-item text-danger destroy" {% if session.su == 'Yes' and container.state == 'STOPPED' %}data-container-name="{{container.name}}"{% endif %}>
                                         Destroy
                                         </a>
@@ -121,16 +121,16 @@
 
 {% block script %}
 <script type="text/javascript">
-
+            // BROKEN REFRESH
             function refreshMemoryContainers(){
-                $.getJSON('{{ url_for('main.refresh_memory_containers', name='containers') }}', function(data) {
+                $.getJSON('{{ url_for('containers.refresh_memory', name='containers') }}', function(data) {
                     data = data.data;
                     for (i in data) {
                         var el = $('#'+data[i].name+' span');
-                        if (data[i].runtime.memory.usage_in_bytes == '') {
-                            el.text(data[i].runtime.memory.usage_in_bytes + ' MB');
+                        if (data[i]['runtime.memory.usage_in_bytes'] == '') {
+                            el.text(data[i]['runtime.memory.usage_in_bytes'] + ' MB');
                         } else {
-                            el.text(data[i].runtime.memory.usage_in_bytes + " / " + data[i].settings.memlimit + ' MB');
+                            el.text(data[i]['runtime.memory.usage_in_bytes'] + " / " + data[i].settings.memlimit + ' MB');
                         }
                         el[0].className = el[0].className.replace(/label\-(success|warning|danger)/g,'badge-'+memory_color(data[i].memusg, data[i].settings.memlimit));
                     }
@@ -184,7 +184,7 @@
 
                 $(".destroy").on('click',function(e){
                     console.log("clicked");
-                    $(".destroy-link").attr('href',"{{url_for('main.action', action='destroy') }}" + "&next={{request.path}}&name=" + $(this).data('container-name'));
+                    $(".destroy-link").attr('href',"{{url_for('containers.action', action='destroy') }}" + "&next={{request.path}}&name=" + $(this).data('container-name'));
                     $('.modal-body #destroy-container-name').text($(this).data('container-name'));
                     var container_id = '#destroyCT' + $(this).data('container-name');
                     console.log(container_id);

@@ -2,3 +2,5 @@ include *.rst
 recursive-include lwp LICENSE version
 recursive-include lwp/static *
 recursive-include lwp/templates *
+recursive-include lwp/*/templates *
+recursive-include lwp/*/static *

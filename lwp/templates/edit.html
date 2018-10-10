@@ -45,15 +45,15 @@
                 {% if container.state == 'RUNNING' %}
                     <span class="btn btn-link">{{ container.state }}</span>
                 {% else %}
-                    <a id="start-container" class="btn btn-primary" ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content" {% if container.state == 'STOPPED' or container.state == 'FROZEN' %}ic-get-from="{{ url_for('main.action', name=container.name, action=start_action[container.state], from='edit') }}"{% endif %}>
+                    <a id="start-container" class="btn btn-primary" ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content" {% if container.state == 'STOPPED' or container.state == 'FROZEN' %}ic-get-from="{{ url_for('containers.action', name=container.name, action=start_action[container.state], from='edit') }}"{% endif %}>
                     Start<i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
                     </a>
                 {% endif %}
                 
-                <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if container.state == 'STOPPED' %} disabled{% endif %}" {% if container.state == 'RUNNING' or container.state == 'FROZEN' %}ic-get-from="{{ url_for('main.action', name=container.name, action='stop', from='edit') }}"{% endif %}>
+                <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if container.state == 'STOPPED' %} disabled{% endif %}" {% if container.state == 'RUNNING' or container.state == 'FROZEN' %}ic-get-from="{{ url_for('containers.action', name=container.name, action='stop', from='edit') }}"{% endif %}>
                     Stop <i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
                 </a>
-                <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if container.state == 'FROZEN' or container.state == 'STOPPED' %} disabled{% endif %}" {% if container.state == 'RUNNING' %}ic-get-from="{{ url_for('main.action', name=container.name, action='freeze', from='edit') }}"{% endif %}>
+                <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if container.state == 'FROZEN' or container.state == 'STOPPED' %} disabled{% endif %}" {% if container.state == 'RUNNING' %}ic-get-from="{{ url_for('containers.action', name=container.name, action='freeze', from='edit') }}"{% endif %}>
                     Freeze <i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
                 </a>
             </div>
@@ -128,7 +128,7 @@
 <div class="col-lg-10">
     <div class="tab-content" id="myTabContent">
         {#
-            <form id="config" action="{{ url_for('main.edit', container_name=container.name) }}" method="post">
+            <form id="config" action="{{ url_for('containers.edit', container_name=container.name) }}" method="post">
         #}
         <div class="tab-pane fade show active" id="info" role="tabpanel" aria-labelledby="info-tab">
             <p>
@@ -140,7 +140,7 @@
         </div>
         <div class="tab-pane fade show" id="boot" role="tabpanel" aria-labelledby="boot-tab">
             <div class="card">
-                <form ic-post-to="{{ url_for('main.edit', container_name=container.name) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
+                <form ic-post-to="{{ url_for('containers.edit', container_name=container.name) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
                 <div class="card-body">
                     <div class="form-group">
                         <label for="utsname">Hostname</label>
@@ -166,7 +166,7 @@
         </div>
         <div class="tab-pane fade" id="network" role="tabpanel" aria-labelledby="network-tab">
             <div class="card">
-                <form ic-post-to="{{ url_for('main.edit', container_name=container.name) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
+                <form ic-post-to="{{ url_for('containers.edit', container_name=container.name) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
                         <!--{% for network in container.settings.networks.values() %}
                                     {% for ip in network.ipv4 %}{{ip}}{% endfor %}-<br>
                                     {% for ip in network.ipv6 %}{{ip}}{% endfor %}-<br>
@@ -242,7 +242,7 @@
         </div>
         <div class="tab-pane fade" id="resources" role="tabpanel" aria-labelledby="resources-tab">
             <div class="card">
-                <form ic-post-to="{{ url_for('main.edit', container_name=container.name) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
+                <form ic-post-to="{{ url_for('containers.edit', container_name=container.name) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
                 <div class="card-body">
                     <div class="form-group">
                         <label for="memlimit">Memory limit *</label>
@@ -280,7 +280,7 @@
         <div class="tab-pane fade" id="logging" role="tabpanel" aria-labelledby="logging-tab">
             <div class="card">
                 <div class="card-header"><h3>Logging</h3></div>
-                <form ic-post-to="{{ url_for('main.edit', container_name=container.name) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
+                <form ic-post-to="{{ url_for('containers.edit', container_name=container.name) }}" ic-select-from-response="#main-content" ic-target="#main-content" ic-target-replace="true">
                 <div class="card-body">
                     <div class="form-group">
                         <label for="loglevel">Log level</label>
@@ -314,7 +314,7 @@
                 <div class="card-body">
                     {% if container.state == 'STOPPED' %}
                     <input id="name-{{container.name}}" name="name" value="{{container.name}}" type="hidden">
-                    <a id="create-snapshot" class="btn btn-outline-primary" ic-replace-target="false" ic-include="#name-{{container.name}}" ic-select-from-response="#snapshots-table" ic-target="#snapshots-table" ic-get-from="{{url_for('main.action', action='snapshot_create', name=container.name, from='edit') }}">
+                    <a id="create-snapshot" class="btn btn-outline-primary" ic-replace-target="false" ic-include="#name-{{container.name}}" ic-select-from-response="#snapshots-table" ic-target="#snapshots-table" ic-get-from="{{url_for('containers.action', action='snapshot_create', name=container.name, from='edit') }}">
                         Create snapshot&nbsp;<i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
                     </a>
                     {% else %}
@@ -373,7 +373,7 @@
             }
 
             function refreshMemory(container){
-                $.getJSON('{{ url_for('main.refresh_memory_containers', name=container.name) }}', function(data) {
+                $.getJSON('{{ url_for('containers.refresh_memory', name=container.name) }}', function(data) {
                     var el = $('#'+container+' span');
                     if (el.length > 0) {
                         el.text(data.memusg+' MB');

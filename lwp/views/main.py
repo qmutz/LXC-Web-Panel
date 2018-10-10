@@ -5,15 +5,16 @@ import re
 import time
 import socket
 import subprocess
-import requests
+#~ import requests
 from flask import Blueprint, request, session, g, redirect, url_for, abort, render_template, flash, jsonify
 from flask import current_app as app
 import lwp
 #~ import lwp.lxclite as lxc
 from lwp.utils import hash_passwd, cgroup_ext
-from lwp.config import read_config_file, ConfigParser
+from lwp.config import read_config_file
 from lwp.decorators import if_logged_in
 from lwp.views.auth import AUTH
+from lwp.api.client import GantryClient
 
 config = read_config_file()
 
@@ -28,101 +29,12 @@ else:
 # Flask module
 mod = Blueprint('main', __name__)
 
-api_prefix = '/api/v1'
+#~ api_prefix = '/api/v1'
 
-payload = {'private_token':private_token}
+#~ payload = {'private_token':private_token}
 
 
-class GantryClient():
-    api_prefix = '/api/v1'
-    
-    def __init__(self, config):
-        self.address = app.config['ADDRESS']
-        self.port = app.config['PORT']
-        self.token = config['api']['token']
-        self.default_url = 'http://{}:{}{}'.format(self.address, self.port, self.api_prefix)
-        self.payload = {'private_token':self.token}
-        
-    def get_payload(self):
-        return self.payload.copy()
-        
-    def build_url(self, endpoint):
-        return '{}/{}/'.format(self.default_url, endpoint)
-        
-    def set_state(self, name, state):
-        data = {'action':state}
-        r = requests.post(self.build_url('container/state/{}'.format(name)), params=self.get_payload(),json=data)
-        return r.json()
-        
-    def make_operation(self, name, operation, **kwargs):
-        data = {'operation':operation}
-        for key, value in kwargs.items():
-            data[key] = value
-        r = requests.post(self.build_url('container/operation/{}'.format(name)), params=self.get_payload(),json=data)
-        return r.status_code
-        
-    def set_config(self, name, data):
-        print(data)
-        #~ for key, value in kwargs.items():
-            #~ data[key] = value
-        r = requests.post(self.build_url('container/config/{}'.format(name)), params=self.get_payload(),json=data)
-        return r.json()
-        
-    def get_host(self):
-        r = requests.get(self.build_url('host'), params=self.get_payload())
-        return r.json()
-        
-    def get_checks(self):
-        r = requests.get(self.build_url('host/checks'), params=self.get_payload())
-        return r.json()
-        
-    def get_users(self, su=False):
-        payload = self.get_payload()
-        if su:
-            payload['su'] = True
-        r = requests.get(self.build_url('user'), params=payload)
-        return r.json()['data']
-        
-    def create_user(self, username, password, name=False, su=False):
-        data = {'username':username,'password':password}
-        if name:
-            data['name'] = name
-        if su:
-            data['su'] = su
-        r = requests.put(self.build_url('user'), params=self.get_payload(), json=data)
-        return r.json()
-        
-    def update_user(self, user_id, attribs):
-        data = attribs
-        r = requests.put(self.build_url('user/{}'.format(user_id)), params=self.get_payload(), json=data)
-        return r.status_code
-        
-    def delete_user(self, user_id):
-        r = requests.delete(self.build_url('user/{}'.format(user_id)), params=self.get_payload())
-        return r.status_code
-        
-    def get_tokens(self):
-        r = requests.get(self.build_url('token'),params=self.get_payload())
-        return r.json()['data']
-    
-    def delete_token(self, token):
-        data = {'token':token}
-        r = requests.delete(self.build_url('token'),params=self.get_payload(),json=data)
-        return r.status_code
-        
-    def add_token(self, token, description, username):
-        data = {'token':token,'description':description,'username':username}
-        r = requests.put(self.build_url('token'),params=self.get_payload(),json=data)
-        return r.status_code
-        
-    def get_containers(self):
-        r = requests.get(self.build_url('container'),params=self.get_payload())
-        return r.json()
-        
-    def get_container(self,container_name):
-        r = requests.get(self.build_url('container/{}'.format(container_name)),params=self.get_payload())
-        return r.json()
-        
+
 def plain_containers(_list):
     container_list = []
     for container in _list:
@@ -131,75 +43,8 @@ def plain_containers(_list):
 
 
     
-    #~ STATUSES = ('RUNNING', 'FROZEN', 'STOPPED')
-    #~ if plain:
-        #~ return plain_containers(container_list)
-    #~ if by_status:
-        #~ containers_status = []
-        #~ for status in STATUSES:
-            #~ containers_by_status = []
-            #~ for container in container_list:
-                #~ if container['state'] == status.lower():
-                    #~ container_info = {
-                        #~ 'name': container['container'],
-                        #~ 'settings': lwp.get_container_settings(container['container'], status),
-                        #~ 'memusg': 0,
-                    #~ }
-                    #~ containers_by_status.append(container_info)
-            #~ containers_status.append({
-                #~ 'status': status.lower(),
-                #~ 'containers': containers_by_status
-            #~ })
-        #~ return container_list, containers_status
-    #~ return container_list
 
-@mod.route('/')
-@mod.route('/home')
-@if_logged_in()
-def home():
-    """
-    Home page function, list containers
-    """
-    gantry = GantryClient(config)
-    host = gantry.get_host()
-    containers = gantry.get_containers()
-    clonable_containers = []
-    for container in containers:
-        if container['state'] == 'STOPPED':
-            clonable_containers.append(container['name'])
-    context = {
-        'containers': containers,
-        'clonable_containers': clonable_containers,
-        #~ 'dist': host_info['distribution'],
-        'host': host,
-        'templates': lwp.get_templates_list(),
-        #~ 'storage_repos': storage_repos,
-        'auth': AUTH,
-    }
-    return render_template('index.html', **context)
-    
-@mod.route('/containers')
-@if_logged_in()
-def containers():
-    """
-    Home page function, list containers
-    """
-    gantry = GantryClient(config)
-    host = gantry.get_host()
-    containers = gantry.get_containers()
-    clonable_containers = []
-    for container in containers:
-        if container['state'] == 'STOPPED':
-            clonable_containers.append(container['name'])
-    context = {
-        'containers': containers,
-        'clonable_containers': clonable_containers,
-        'host': host,
-        'templates': lwp.get_templates_list(),
-        #~ 'storage_repos': storage_repos,
-        'auth': AUTH,
-    }
-    return render_template('containers.html', **context)
+
 
 @mod.route('/about')
 @if_logged_in()
@@ -208,7 +53,7 @@ def about():
     About page
     """
     gantry = GantryClient(config)
-    host_info = gantry.get_host()
+    host_info = g.api.get_host()
     context = {
         'version':host_info['version'],
         'dist':host_info['distribution'],
@@ -217,77 +62,7 @@ def about():
     return render_template('about.html', **context)
 
 
-@mod.route('/<container_name>/edit', methods=['POST', 'GET'])
-@if_logged_in()
-def edit(container_name):
-    """
-    Edit containers page and actions if form post request
-    """
-    host_memory = lwp.host_memory_usage()
-    gantry = GantryClient(config)
-    container = gantry.get_container(container_name)
-    host = gantry.get_host()
-    #~ info = lxc.info(container)
-    #~ cfg = lwp.get_container_settings(container, info['state'])
-    if request.method == 'POST':
-        form = request.form.copy()
-        # convert boolean in correct value for lxc, if checkbox is inset value is not submitted inside POST
-        form['network.flags'] = 'up' if 'flags' in form else 'down'
-        form['start.auto'] = '1' if 'start.auto' in form else '0'
 
-        # if memlimits/memswlimit is at max values unset form values
-        if 'memlimit' in form and int(form['memlimit']) == host_memory['total']:
-            form['memlimit'] = ''
-        if 'swlimit' in form and int(form['swlimit']) == host_memory['total'] * 2:
-            form['swlimit'] = ''
-        data = {}
-        del form['submit']
-        for option in form.keys():
-            if option.startswith('ic-') is False and option.startswith('_') is False:
-                data[option] = form[option]
-        #~ print("main wtf")
-        container = gantry.set_config(container_name, data)
-        #~ print("after request main wtf")
-        #~ for option in form.keys():
-            # if the key is supported AND is different
-            #~ if option in cfg.keys() and form[option] != cfg[option]:
-                # validate value with regex
-            
-            
-            #~ if re.match(cgroup_ext[option][1], form[option]):
-                #~ lwp.push_config_value(cgroup_ext[option][0], form[option], container=container)
-                #~ flash(cgroup_ext[option][2], 'success')
-            #~ else:
-                #~ flash('Cannot validate value for option {}. Unsaved!'.format(option), 'error')
-            
-        # we should re-read container configuration now to be coherent with the newly saved values
-        #~ cfg = lwp.get_container_settings(container)
-
-        #~ info = lxc.info(container)
-    #~ infos = {'status': container['state'], 'pid': info['pid'], 'memusg': lwp.memory_usage(container)}
-    #~ infos = {'status': container['state'], 'memusg': lwp.memory_usage(container['name'])}
-    # prepare a regex dict from cgroups_ext definition
-    regex = {}
-    for k, v in cgroup_ext.items():
-        regex[k] = v[1]
-
-    #~ snapshots = lxc.snapshots(container)
-    context = {
-        #~ 'all_info': infos,
-        #~ 'snapshots': snapshots,
-        #~ 'containers': lxc.ls(),
-        'container': container,
-        'storage_repository': config['storage_repository'],
-        #~ 'infos': infos,
-        #~ 'settings': container['settings'],
-        #~ 'host_memory': host_memory,
-        'regex': regex,
-        
-        #~ 'clonable_containers': lxc.listx()['STOPPED'],
-        #~ 'dist': lwp.name_distro(),
-        'host': host,
-    }
-    return render_template('edit.html', **context)
 
 
 @mod.route('/settings/lxc-net', methods=['POST', 'GET'])
@@ -363,7 +138,7 @@ def lwp_users():
     except KeyError:
         trash = 0
     gantry = GantryClient(config)
-    users = gantry.get_users()
+    users = g.api.get_users()
     su_users = []
     for u in users:
         if u['su'] == 'Yes':
@@ -375,7 +150,7 @@ def lwp_users():
                 if su_users[0]['username'] == request.args.get('username'):
                     flash(u'Can\'t delete the last admin user : %s' % request.args.get('username'), 'error')
                     return redirect(url_for('main.lwp_users'))
-            gantry.delete_user(user_id=request.args.get('userid'))
+            g.api.delete_user(user_id=request.args.get('userid'))
             flash(u'Deleted %s' % request.args.get('username'), 'success')
             return redirect(url_for('main.lwp_users'))
 
@@ -389,7 +164,7 @@ def lwp_users():
                     if request.form['password1'] == request.form['password2']:
                         if request.form['name']:
                             if re.match('[a-z A-Z0-9]{3,32}', request.form['name']):
-                                gantry.create_user(
+                                g.api.create_user(
                                     name=request.form['name'],
                                     username=request.form['username'],
                                     password=hash_passwd(request.form['password1'])
@@ -397,11 +172,11 @@ def lwp_users():
                             else:
                                 flash(u'Invalid name!', 'error')
                         else:
-                            gantry.create_user(
+                            g.api.create_user(
                                 username=request.form['username'],
                                 password=hash_passwd(request.form['password1'])
                             )
-                        users = gantry.get_users()
+                        users = g.api.get_users()
                         su_users = []
                         for u in users:
                             if u['su'] == Yes:
@@ -433,8 +208,8 @@ def lwp_users():
                     update_user['password'] = hash_passwd(request.form['password1'])
                 elif request.form['password1'] and request.form['password2'] and request.form['password1'] != request.form['password2']:
                     flash(u'No password match. Not changed', 'error')
-                gantry.update_user(request.form['id'],update_user)
-                users = gantry.get_users()
+                g.api.update_user(request.form['id'],update_user)
+                users = g.api.get_users()
                 su_users = []
                 for u in users:
                     if u['su'] == 'Yes':
@@ -462,21 +237,20 @@ def lwp_tokens():
     if session['su'] != 'Yes':
         return abort(403)
     gantry = GantryClient(config)
-    tokens = gantry.get_tokens()
+    tokens = g.api.get_tokens()
     if request.method == 'POST':
         if request.form['action'] == 'add':
             token = request.form['token']
             description = request.form['description']
             username = session['username']  # we should save the username due to ldap option
-            #~ ApiTokens.create(username=username,description=description,token=token)
-            gantry.add_token(token,description,username)
-            tokens = gantry.get_tokens()
+            g.api.add_token(token,description,username)
+            tokens = g.api.get_tokens()
             flash(u'Token %s successfully added!' % token, 'success')
 
     if request.args.get('action') == 'del':
         token = request.args['token']
-        gantry.delete_token(token)
-        tokens = gantry.get_tokens()
+        g.api.delete_token(token)
+        tokens = g.api.get_tokens()
         flash(u'Token %s successfully deleted!' % token, 'success')
         return redirect(url_for('main.lwp_tokens'))
     context = {
@@ -484,7 +258,6 @@ def lwp_tokens():
         
     }
     return render_template('tokens.html', **context)
-    #~ return render_template('tokens.html', containers=lxc.ls(), tokens=tokens, dist=lwp.name_distro(), host=socket.gethostname())
 
 
 @mod.route('/checkconfig')
@@ -496,8 +269,8 @@ def checkconfig():
     if session['su'] != 'Yes':
         return abort(403)
     gantry = GantryClient(config)
-    host = gantry.get_host()
-    checks = gantry.get_checks()
+    host = g.api.get_host()
+    checks = g.api.get_checks()
     print(checks)
     context = {
         'host': host,
@@ -506,248 +279,84 @@ def checkconfig():
     return render_template('checkconfig.html', **context)
 
 
-@mod.route('/action', methods=['GET'])
-@if_logged_in()
-def action():
-    """
-    Manage all actions related to containers
-    lxc-start, lxc-stop, etc...
-    """
-    action = request.args['action']
-    act = action
-    name = request.args['name']
-    gantry =  GantryClient(config)
-    if act == 'start':
-        response = gantry.set_state(name,action)
-        if response['state'] == 'RUNNING':
-            flash(u'Container %s started successfully!' % name, 'success')
-        else:
-            flash(u'Unable to start %s!' % name, 'danger')
-    elif act == 'stop':
-        response = gantry.set_state(name,action)
-        if response['state'] == 'STOPPED':
-            flash(u'Container %s stopped successfully!' % name, 'success')
-        else:
-            flash(u'Unable to stop %s!' % name, 'danger')
-    elif action == 'freeze':
-        response = gantry.set_state(name,action)
-        if response['state'] == 'FROZEN':
-            flash(u'Container %s frozen successfully!' % name, 'success')
-        else:
-            flash(u'Unable to freeze %s!' % name, 'danger')
-    elif action == 'unfreeze':
-        response = gantry.set_state(name,action)
-        if response['state'] != 'FROZEN':
-            flash(u'Container %s unfrozen successfully!' % name, 'success')
-        else:
-            flash(u'Unable to unfreeze %s!' % name, 'danger')
-    elif action == 'destroy':
-        if session['su'] != 'Yes':
-            return abort(403)
-        gantry.make_operation(name,action)
-    elif action == 'snapshot_create':
-        gantry.make_operation(name, action)
-    elif action == 'snapshot_destroy' and 'snapshot_name' in request.args:
-        gantry.make_operation(name, action, snapshot_name=request.args['snapshot_name'])
-        
-    elif action == 'copy' and 'new_name' in request.args:
-        gantry.make_operation(name, action, new_name=request.args['new_name'])
-    elif act == 'reboot' and name == 'host':
-        if session['su'] != 'Yes':
-            return abort(403)
-        msg = '\v*** LXC Web Panel *** \
-                \nReboot from web panel'
-        try:
-            subprocess.check_call('/sbin/shutdown -r now \'%s\'' % msg, shell=True)
-            flash(u'System will now restart!', 'success')
-        except subprocess.CalledProcessError:
-            flash(u'System error!', 'error')
-    if 'next' in request.args:
-        return redirect(request.args['next'])
-    try:
-        if request.args['from'] == 'edit':
-            return redirect(url_for('main.edit', container_name=name))
-        else:
-            return redirect(url_for('main.home'))
-    except KeyError:
-        return redirect(url_for('main.home'))
 
 
-@mod.route('/action/create-container', methods=['GET', 'POST'])
-@if_logged_in()
-def create_container():
-    """
-    verify all forms to create a container
-    """
-    if session['su'] != 'Yes':
-        return abort(403)
-    if request.method == 'POST':
-        name = request.form['name']
-        template = request.form['template']
-        command = request.form['command']
-        if re.match('^(?!^containers$)|[a-zA-Z0-9_-]+$', name):
-            storage_method = request.form['backingstore']
-
-            if storage_method == 'default':
-                try:
-                    if lxc.create(name, template=template, xargs=command) == 0:
-                        flash(u'Container %s created successfully!' % name, 'success')
-                    else:
-                        flash(u'Failed to create %s!' % name, 'error')
-                except lxc.ContainerAlreadyExists:
-                    flash(u'The Container %s is already created!' % name, 'error')
-                except subprocess.CalledProcessError:
-                    flash(u'Error! %s' % name, 'error')
-
-            elif storage_method == 'directory':
-                directory = request.form['dir']
-
-                if re.match('^/[a-zA-Z0-9_/-]+$', directory) and directory != '':
-                    try:
-                        if lxc.create(name, template=template, storage='dir --dir %s' % directory, xargs=command) == 0:
-                            flash(u'Container %s created successfully!' % name, 'success')
-                        else:
-                            flash(u'Failed to create %s!' % name, 'error')
-                    except lxc.ContainerAlreadyExists:
-                        flash(u'The Container %s is already created!' % name, 'error')
-                    except subprocess.CalledProcessError:
-                        flash(u'Error! %s' % name, 'error')
-
-            elif storage_method == 'btrfs':
-                try:
-                    if lxc.create(name, template=template, storage='btrfs', xargs=command) == 0:
-                        flash(u'Container %s created successfully!' % name, 'success')
-                    else:
-                        flash(u'Failed to create %s!' % name, 'error')
-                except lxc.ContainerAlreadyExists:
-                    flash(u'The Container %s is already created!' % name, 'error')
-                except subprocess.CalledProcessError:
-                    flash(u'Error! %s' % name, 'error')
-
-            elif storage_method == 'zfs':
-                zfs = request.form['zpoolname']
-
-                if re.match('^[a-zA-Z0-9_-]+$', zfs) and zfs != '':
-                    try:
-                        if lxc.create(name, template=template, storage='zfs --zfsroot %s' % zfs, xargs=command) == 0:
-                            flash(u'Container %s created successfully!' % name, 'success')
-                        else:
-                            flash(u'Failed to create %s!' % name, 'error')
-                    except lxc.ContainerAlreadyExists:
-                        flash(u'The Container %s is already created!' % name, 'error')
-                    except subprocess.CalledProcessError:
-                        flash(u'Error! %s' % name, 'error')
-
-            elif storage_method == 'lvm':
-                lvname = request.form['lvname']
-                vgname = request.form['vgname']
-                fstype = request.form['fstype']
-                fssize = request.form['fssize']
-                storage_options = 'lvm'
-
-                if re.match('^[a-zA-Z0-9_-]+$', lvname) and lvname != '':
-                    storage_options += ' --lvname %s' % lvname
-                if re.match('^[a-zA-Z0-9_-]+$', vgname) and vgname != '':
-                    storage_options += ' --vgname %s' % vgname
-                if re.match('^[a-z0-9]+$', fstype) and fstype != '':
-                    storage_options += ' --fstype %s' % fstype
-                if re.match('^[0-9]+[G|M]$', fssize) and fssize != '':
-                    storage_options += ' --fssize %s' % fssize
-
-                try:
-                    if lxc.create(name, template=template, storage=storage_options, xargs=command) == 0:
-                        flash(u'Container %s created successfully!' % name, 'success')
-                    else:
-                        flash(u'Failed to create %s!' % name, 'error')
-                except lxc.ContainerAlreadyExists:
-                    flash(u'The container/logical volume %s is already created!' % name, 'error')
-                except subprocess.CalledProcessError:
-                    flash(u'Error! %s' % name, 'error')
-
-            else:
-                flash(u'Missing parameters to create container!', 'error')
-
-        else:
-            if name == '':
-                flash(u'Please enter a container name!', 'error')
-            else:
-                flash(u'Invalid name for \"%s\"!' % name, 'error')
-
-    return redirect(url_for('main.home'))
 
 
-@mod.route('/action/snapshot-container', methods=['GET', 'POST'])
-@if_logged_in()
-def candeletesnapshot_container():
-    """
-    Operations on snapshots, create, delete, restore
-    """
-    operation_message = False
-    if session['su'] != 'Yes':
-        return abort(403)
-    if request.method == 'POST':
-        name = request.form['name']
-        delete_snapshot = request.form.get('delete_snapshot', False)
-        restore_snapshot = request.form.get('restore_snapshot', False)
-        if delete_snapshot:
-            restore_snapshot = False
-        if re.match('^(?!^containers$)|[a-zA-Z0-9_-]+$', name):
-            out = None
-            try:
-                out = lxc.snapshot(name,delete_snapshot=delete_snapshot,restore_snapshot=restore_snapshot)
-            except lxc.SnapshotError:
-                operation_message = u'Error with snapshot for {}!'.format(name)
-                flash(operation_message, 'error')
+
+
+#~ @mod.route('/action/snapshot-container', methods=['GET', 'POST'])
+#~ @if_logged_in()
+#~ def candeletesnapshot_container():
+    #~ """
+    #~ Operations on snapshots, create, delete, restore
+    #~ """
+    #~ operation_message = False
+    #~ if session['su'] != 'Yes':
+        #~ return abort(403)
+    #~ if request.method == 'POST':
+        #~ name = request.form['name']
+        #~ delete_snapshot = request.form.get('delete_snapshot', False)
+        #~ restore_snapshot = request.form.get('restore_snapshot', False)
+        #~ if delete_snapshot:
+            #~ restore_snapshot = False
+        #~ if re.match('^(?!^containers$)|[a-zA-Z0-9_-]+$', name):
+            #~ out = None
+            #~ try:
+                #~ out = lxc.snapshot(name,delete_snapshot=delete_snapshot,restore_snapshot=restore_snapshot)
+            #~ except lxc.SnapshotError:
+                #~ operation_message = u'Error with snapshot for {}!'.format(name)
+                #~ flash(operation_message, 'error')
                 
-            if out and out == 0:
-                operation_message = u'Operation on snapshot for container {}'.format(name)
-                flash(operation_message, 'success')
-            elif out and out != 0:
-                operation_message = u'Failed operation snapshot for {}!'.format(name)
-                flash(operation_message, 'error')
+            #~ if out and out == 0:
+                #~ operation_message = u'Operation on snapshot for container {}'.format(name)
+                #~ flash(operation_message, 'success')
+            #~ elif out and out != 0:
+                #~ operation_message = u'Failed operation snapshot for {}!'.format(name)
+                #~ flash(operation_message, 'error')
 
-        else:
-            if name == '':
-                flash(u'Please enter a container name!', 'error')
-            else:
-                flash(u'Invalid name for \"%s\"!' % name, 'error')    
-    snapshots = lxc.snapshots(name)
-    return render_template('snapshots.html', container=name, snapshots=snapshots, operation_message=operation_message)
+        #~ else:
+            #~ if name == '':
+                #~ flash(u'Please enter a container name!', 'error')
+            #~ else:
+                #~ flash(u'Invalid name for \"%s\"!' % name, 'error')    
+    #~ snapshots = lxc.snapshots(name)
+    #~ return render_template('snapshots.html', container=name, snapshots=snapshots, operation_message=operation_message)
 
     
-@mod.route('/action/copy-container', methods=['GET', 'POST'])
-@if_logged_in()
-def copy_container():
-    """
-    Verify all forms to copy a container
-    """
-    if session['su'] != 'Yes':
-        return abort(403)
-    if request.method == 'POST':
-        orig = request.form['orig']
-        name = request.form['name']
-        if re.match('^(?!^containers$)|[a-zA-Z0-9_-]+$', name):
-            out = None
+#~ @mod.route('/action/copy-container', methods=['GET', 'POST'])
+#~ @if_logged_in()
+#~ def copy_container():
+    #~ """
+    #~ Verify all forms to copy a container
+    #~ """
+    #~ if session['su'] != 'Yes':
+        #~ return abort(403)
+    #~ if request.method == 'POST':
+        #~ orig = request.form['orig']
+        #~ name = request.form['name']
+        #~ if re.match('^(?!^containers$)|[a-zA-Z0-9_-]+$', name):
+            #~ out = None
 
-            try:
-                out = lxc.copy(orig=orig, new=name)
-            except lxc.ContainerAlreadyExists:
-                flash(u'The Container %s already exists!' % name, 'error')
-            except subprocess.CalledProcessError:
-                flash(u'Can\'t copy a directory', 'error')
+            #~ try:
+                #~ out = lxc.copy(orig=orig, new=name)
+            #~ except lxc.ContainerAlreadyExists:
+                #~ flash(u'The Container %s already exists!' % name, 'error')
+            #~ except subprocess.CalledProcessError:
+                #~ flash(u'Can\'t copy a directory', 'error')
 
-            if out and out == 0:
-                flash(u'Container %s copy into %s successfully!' % (orig, name), 'success')
-            elif out and out != 0:
-                flash(u'Failed to copy %s into %s!' % (orig, name), 'error')
+            #~ if out and out == 0:
+                #~ flash(u'Container %s copy into %s successfully!' % (orig, name), 'success')
+            #~ elif out and out != 0:
+                #~ flash(u'Failed to copy %s into %s!' % (orig, name), 'error')
 
-        else:
-            if name == '':
-                flash(u'Please enter a container name!', 'error')
-            else:
-                flash(u'Invalid name for \"%s\"!' % name, 'error')
+        #~ else:
+            #~ if name == '':
+                #~ flash(u'Please enter a container name!', 'error')
+            #~ else:
+                #~ flash(u'Invalid name for \"%s\"!' % name, 'error')
 
-    return redirect(url_for('main.home'))
+    #~ return redirect(url_for('main.home'))
 
 
 @mod.route('/action/backup-container', methods=['GET', 'POST'])
@@ -801,32 +410,9 @@ def refresh_info():
     return jsonify(**context)
 
 
-@mod.route('/_refresh_memory_<name>')
-@if_logged_in()
-def refresh_memory_containers(name=None):
-    gantry = GantryClient(config)
-    host = gantry.get_host()
-    if name == 'containers':
-        all_containers = gantry.get_containers()
-        #~ containers_running = lxc.running()
-        containers = []
-        for container in all_containers:
-            if container['state'] == 'RUNNING':
-            #~ container = container.replace(' (auto)', '')
-                containers.append({'name': container['name'],
-                                'runtime': container['runtime']['memory.usage_in_bytes'],
-                               'settings': container['settings']
-                               })
-        return jsonify(data=containers)
-    elif name == 'host':
-        #~ return jsonify(lwp.host_memory_usage())
-        return jsonify(host['memory'])
-    return jsonify({'memusg': lwp.memory_usage(name)})
-
-
 @mod.route('/_check_version')
 @if_logged_in()
 def check_version():
-    gantry = GantryClient(config)
-    host = gantry.get_host()
+    #~ gantry = GantryClient(config)
+    host = g.api.get_host()
     return jsonify(host['version'])

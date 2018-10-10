@@ -16,7 +16,7 @@
                 
                 <input id="name-{{snap.0}}" name="name" value="{{ container.name }}" type="hidden"> 
                 <input id="delete_snapshot-{{snap.0}}" name="delete_snapshot" value="{{ snap.0 }}" type="hidden">
-                <a class="btn btn-outline-danger" ic-select-from-response="#snapshots-table" ic-confirm="Are you sure?" ic-replace-target="false" ic-include="#delete_snapshot-{{snap.0}},#name-{{snap.0}}"  ic-target="#snapshots-table" ic-get-from="{{url_for('main.action', action='snapshot_destroy', snapshot_name=snap.0, name=container.name, from='edit') }}">Delete</a>
+                <a class="btn btn-outline-danger" ic-select-from-response="#snapshots-table" ic-confirm="Are you sure?" ic-replace-target="false" ic-include="#delete_snapshot-{{snap.0}},#name-{{snap.0}}"  ic-target="#snapshots-table" ic-get-from="{{url_for('containers.action', action='snapshot_destroy', snapshot_name=snap.0, name=container.name, from='edit') }}">Delete</a>
                 
             </td>
         </tr>

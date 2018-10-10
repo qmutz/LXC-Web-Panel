@@ -1,7 +1,7 @@
 <nav class="navbar navbar-expand-md navbar-light bg-light">
     <a href="#menu-toggle" class="btn btn-link btn-secondary" id="menu-toggle"><i class="fas fa-thumbtack"></i></a>
 <!--
-    <a class="navbar-brand" href="{{ url_for('main.home') }}"><span class="text-muted">LWP |</span> {{ host }} ({{ dist }})</a>
+    <a class="navbar-brand" href="{{ url_for('dashboard.home') }}"><span class="text-muted">LWP |</span> {{ host }} ({{ dist }})</a>
 -->
 <!--
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarColor03" aria-controls="navbarColor03" aria-expanded="false" aria-label="Toggle navigation">
@@ -20,7 +20,7 @@
                 
                 <div class="dropdown-menu" aria-labelledby="containers">
                     {% for c in containers %}
-                    <a class="dropdown-item {% if request.endpoint=="main.edit" and container==c %} active{% endif %}" href="{{ url_for('main.edit',container=c) }}">
+                    <a class="dropdown-item {% if request.endpoint=="containers.edit" and container==c %} active{% endif %}" href="{{ url_for('containers.edit',container=c) }}">
                     <i class="icon-hdd icon-white"></i> {{c}}</a>
                     {% endfor %}
                 </div>
