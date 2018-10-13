@@ -23,7 +23,7 @@
         {% for project in projects %}
                 <tr>
                     <td style="width:55%">
-                        <a href="{{ url_for('projects.edit',project_name=project.name) }}" title="Click to edit {{project.name}}">
+                        <a href="{{ url_for('projects.edit', id=project.id) }}" title="Click to edit {{project.id}}">
                             <h4>
                                 {{project.title}}
                             </h4>

@@ -1,5 +1,6 @@
-from flask import Blueprint, g, render_template, request, jsonify
+from flask import Blueprint, g, render_template, request, jsonify, session, flash, redirect, url_for
 from lwp.decorators import if_logged_in
+from lwp.utils import cgroup_ext
 
 mod = Blueprint('containers', __name__)
 
@@ -19,9 +20,6 @@ def index():
         'containers': containers,
         'clonable_containers': clonable_containers,
         'host': g.api.get_host(),
-        #~ 'templates': lwp.get_templates_list(),
-        #~ 'storage_repos': storage_repos,
-        #~ 'auth': AUTH,
     }
     return render_template('containers.html', **context)
 
@@ -75,8 +73,8 @@ def edit(container_name):
     #~ infos = {'status': container['state'], 'memusg': lwp.memory_usage(container['name'])}
     # prepare a regex dict from cgroups_ext definition
     regex = {}
-    #~ for k, v in cgroup_ext.items():
-        #~ regex[k] = v[1]
+    for k, v in cgroup_ext.items():
+        regex[k] = v[1]
 
     context = {
         'container': container,
@@ -152,107 +150,151 @@ def action():
     except KeyError:
         return redirect(url_for('main.home'))
 
-@mod.route('/action/create-container', methods=['GET', 'POST'])
+@mod.route('/containers/create', methods=['GET', 'POST'])
 @if_logged_in()
 def create():
     """
     verify all forms to create a container
     """
+    import random, string
+    suggested_name = ''.join(random.choice(string.ascii_lowercase) for _ in range(4))
     if session['su'] != 'Yes':
         return abort(403)
     if request.method == 'POST':
+        print(request.form)
         name = request.form['name']
-        template = request.form['template']
-        command = request.form['command']
-        if re.match('^(?!^containers$)|[a-zA-Z0-9_-]+$', name):
-            storage_method = request.form['backingstore']
+        template = request.form.get('template','debian')
+        arch = request.form.get('arch','x86_64')
+        release = request.form.get('release',False)
+        storage_method = request.form.get('backingstore','directory')
+        storage = {
+            'method': storage_method,
+        }
+        if storage_method == 'directory':
+            storage['dir'] = request.form.get('dir', False)
+        elif storage_method == 'btrfs':
+            pass
+        elif storage_method == 'zfs':
+             storage['zpoolname'] = request.form['zpoolname']
+            
+        elif storage_method == 'lvm':
+            storage['lvname'] = request.form['lvname']
+            storage['vgname'] = request.form['vgname']
+            storage['fstype'] = request.form['fstype']
+            storage['fssize'] = request.form['fssize']
+            #~ storage_options = 'lvm'
+        data = {
+            'name': name,
+            'template': template,
+            'arch': arch,
+            'release': release,
+            'storage': storage
+            
+        }
+        g.api.create_container(name, template, release, storage)
+        #~ command = request.form['command']
+        #~ if re.match('^(?!^containers$)|[a-zA-Z0-9_-]+$', name):
+            #~ storage_method = request.form['backingstore']
 
-            if storage_method == 'default':
-                try:
-                    if lxc.create(name, template=template, xargs=command) == 0:
-                        flash(u'Container %s created successfully!' % name, 'success')
-                    else:
-                        flash(u'Failed to create %s!' % name, 'error')
-                except lxc.ContainerAlreadyExists:
-                    flash(u'The Container %s is already created!' % name, 'error')
-                except subprocess.CalledProcessError:
-                    flash(u'Error! %s' % name, 'error')
+            #~ if storage_method == 'default':
+                #~ try:
+                    #~ if lxc.create(name, template=template, xargs=command) == 0:
+                        #~ flash(u'Container %s created successfully!' % name, 'success')
+                    #~ else:
+                        #~ flash(u'Failed to create %s!' % name, 'error')
+                #~ except lxc.ContainerAlreadyExists:
+                    #~ flash(u'The Container %s is already created!' % name, 'error')
+                #~ except subprocess.CalledProcessError:
+                    #~ flash(u'Error! %s' % name, 'error')
 
-            elif storage_method == 'directory':
-                directory = request.form['dir']
+            #~ elif storage_method == 'directory':
+                #~ directory = request.form['dir']
 
-                if re.match('^/[a-zA-Z0-9_/-]+$', directory) and directory != '':
-                    try:
-                        if lxc.create(name, template=template, storage='dir --dir %s' % directory, xargs=command) == 0:
-                            flash(u'Container %s created successfully!' % name, 'success')
-                        else:
-                            flash(u'Failed to create %s!' % name, 'error')
-                    except lxc.ContainerAlreadyExists:
-                        flash(u'The Container %s is already created!' % name, 'error')
-                    except subprocess.CalledProcessError:
-                        flash(u'Error! %s' % name, 'error')
+                #~ if re.match('^/[a-zA-Z0-9_/-]+$', directory) and directory != '':
+                    #~ try:
+                        #~ if lxc.create(name, template=template, storage='dir --dir %s' % directory, xargs=command) == 0:
+                            #~ flash(u'Container %s created successfully!' % name, 'success')
+                        #~ else:
+                            #~ flash(u'Failed to create %s!' % name, 'error')
+                    #~ except lxc.ContainerAlreadyExists:
+                        #~ flash(u'The Container %s is already created!' % name, 'error')
+                    #~ except subprocess.CalledProcessError:
+                        #~ flash(u'Error! %s' % name, 'error')
 
-            elif storage_method == 'btrfs':
-                try:
-                    if lxc.create(name, template=template, storage='btrfs', xargs=command) == 0:
-                        flash(u'Container %s created successfully!' % name, 'success')
-                    else:
-                        flash(u'Failed to create %s!' % name, 'error')
-                except lxc.ContainerAlreadyExists:
-                    flash(u'The Container %s is already created!' % name, 'error')
-                except subprocess.CalledProcessError:
-                    flash(u'Error! %s' % name, 'error')
+            #~ elif storage_method == 'btrfs':
+                #~ try:
+                    #~ if lxc.create(name, template=template, storage='btrfs', xargs=command) == 0:
+                        #~ flash(u'Container %s created successfully!' % name, 'success')
+                    #~ else:
+                        #~ flash(u'Failed to create %s!' % name, 'error')
+                #~ except lxc.ContainerAlreadyExists:
+                    #~ flash(u'The Container %s is already created!' % name, 'error')
+                #~ except subprocess.CalledProcessError:
+                    #~ flash(u'Error! %s' % name, 'error')
 
-            elif storage_method == 'zfs':
-                zfs = request.form['zpoolname']
+            #~ elif storage_method == 'zfs':
+                #~ zfs = request.form['zpoolname']
 
-                if re.match('^[a-zA-Z0-9_-]+$', zfs) and zfs != '':
-                    try:
-                        if lxc.create(name, template=template, storage='zfs --zfsroot %s' % zfs, xargs=command) == 0:
-                            flash(u'Container %s created successfully!' % name, 'success')
-                        else:
-                            flash(u'Failed to create %s!' % name, 'error')
-                    except lxc.ContainerAlreadyExists:
-                        flash(u'The Container %s is already created!' % name, 'error')
-                    except subprocess.CalledProcessError:
-                        flash(u'Error! %s' % name, 'error')
+                #~ if re.match('^[a-zA-Z0-9_-]+$', zfs) and zfs != '':
+                    #~ try:
+                        #~ if lxc.create(name, template=template, storage='zfs --zfsroot %s' % zfs, xargs=command) == 0:
+                            #~ flash(u'Container %s created successfully!' % name, 'success')
+                        #~ else:
+                            #~ flash(u'Failed to create %s!' % name, 'error')
+                    #~ except lxc.ContainerAlreadyExists:
+                        #~ flash(u'The Container %s is already created!' % name, 'error')
+                    #~ except subprocess.CalledProcessError:
+                        #~ flash(u'Error! %s' % name, 'error')
 
-            elif storage_method == 'lvm':
-                lvname = request.form['lvname']
-                vgname = request.form['vgname']
-                fstype = request.form['fstype']
-                fssize = request.form['fssize']
-                storage_options = 'lvm'
+            #~ elif storage_method == 'lvm':
+                #~ lvname = request.form['lvname']
+                #~ vgname = request.form['vgname']
+                #~ fstype = request.form['fstype']
+                #~ fssize = request.form['fssize']
+                #~ storage_options = 'lvm'
 
-                if re.match('^[a-zA-Z0-9_-]+$', lvname) and lvname != '':
-                    storage_options += ' --lvname %s' % lvname
-                if re.match('^[a-zA-Z0-9_-]+$', vgname) and vgname != '':
-                    storage_options += ' --vgname %s' % vgname
-                if re.match('^[a-z0-9]+$', fstype) and fstype != '':
-                    storage_options += ' --fstype %s' % fstype
-                if re.match('^[0-9]+[G|M]$', fssize) and fssize != '':
-                    storage_options += ' --fssize %s' % fssize
+                #~ if re.match('^[a-zA-Z0-9_-]+$', lvname) and lvname != '':
+                    #~ storage_options += ' --lvname %s' % lvname
+                #~ if re.match('^[a-zA-Z0-9_-]+$', vgname) and vgname != '':
+                    #~ storage_options += ' --vgname %s' % vgname
+                #~ if re.match('^[a-z0-9]+$', fstype) and fstype != '':
+                    #~ storage_options += ' --fstype %s' % fstype
+                #~ if re.match('^[0-9]+[G|M]$', fssize) and fssize != '':
+                    #~ storage_options += ' --fssize %s' % fssize
 
-                try:
-                    if lxc.create(name, template=template, storage=storage_options, xargs=command) == 0:
-                        flash(u'Container %s created successfully!' % name, 'success')
-                    else:
-                        flash(u'Failed to create %s!' % name, 'error')
-                except lxc.ContainerAlreadyExists:
-                    flash(u'The container/logical volume %s is already created!' % name, 'error')
-                except subprocess.CalledProcessError:
-                    flash(u'Error! %s' % name, 'error')
+                #~ try:
+                    #~ if lxc.create(name, template=template, storage=storage_options, xargs=command) == 0:
+                        #~ flash(u'Container %s created successfully!' % name, 'success')
+                    #~ else:
+                        #~ flash(u'Failed to create %s!' % name, 'error')
+                #~ except lxc.ContainerAlreadyExists:
+                    #~ flash(u'The container/logical volume %s is already created!' % name, 'error')
+                #~ except subprocess.CalledProcessError:
+                    #~ flash(u'Error! %s' % name, 'error')
 
-            else:
-                flash(u'Missing parameters to create container!', 'error')
+            #~ else:
+                #~ flash(u'Missing parameters to create container!', 'error')
 
-        else:
-            if name == '':
-                flash(u'Please enter a container name!', 'error')
-            else:
-                flash(u'Invalid name for \"%s\"!' % name, 'error')
-
-    return redirect(url_for('main.home'))
+        #~ else:
+            #~ if name == '':
+                #~ flash(u'Please enter a container name!', 'error')
+            #~ else:
+                #~ flash(u'Invalid name for \"%s\"!' % name, 'error')
+    templates = (
+        {'os':'Debian','template':'debian','archs':['x86_64','i386'], 'releases': ['stretch','sid','buster','jessie'],'description':'','source':'official'},
+        {'os':'Ubuntu','template':'ubuntu','archs':['x86_64','i386'], 'releases': ['trusty','cosmic','bionic',],'description':'','source':'official'},
+        {'os':'Fedora','template':'fedora','archs':['x86_64','i386'], 'releases': [],'description':'','source':'official'},
+        {'os':'Centos','template':'centos','archs':['x86_64','i386'], 'releases': ['6','7'],'description':'','source':'official'},
+        {'os':'Arch','template':'archlinux','archs':['x86_64','i386'], 'releases': ['current',],'description':'','source':'official'},
+        {'os':'Alpine','template':'alpine','archs':['x86_64','i386'], 'releases': ['edge','latest-stable','v3.8','v3.7','v3.6','v3.5','v3.4'],'description':'','source':'official'},
+        {'os':'Busybox','template':'busybox','archs':[], 'releases': [],'description':'','source':'official'},
+    )
+    context = {
+        'templates': templates,
+        'suggested_name': suggested_name,
+    }
+    return render_template('create.html', **context)
+    #~ return redirect(url_for('main.home'))
 
 @mod.route('/_refresh_memory_<name>')
 @if_logged_in()

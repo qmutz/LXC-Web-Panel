@@ -57,6 +57,11 @@ class GantryClient():
         r = requests.get(self.build_url('project'), params=payload)
         return r.json()['data']
         
+    def get_project(self, id):
+        payload = self.get_payload()
+        r = requests.get(self.build_url('project/{}'.format(id)), params=payload)
+        return r.json()['data']
+        
     def create_user(self, username, password, name=False, su=False):
         data = {'username':username,'password':password}
         if name:
@@ -95,4 +100,9 @@ class GantryClient():
         
     def get_container(self,container_name):
         r = requests.get(self.build_url('container/{}'.format(container_name)),params=self.get_payload())
+        return r.json()
+        
+    def create_container(self, name, template, release, storage):
+        data = {'name':name,'template':template,'release':release,'storage': storage}
+        r = requests.put(self.build_url('container'),params=self.get_payload(), json=data)
         return r.json()

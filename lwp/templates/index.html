@@ -52,10 +52,11 @@
 </div>
 <div class="card-deck" style="margin-top:60px">
     <div class="card card-border-secondary">
-        <div class="card-header"><h5 class="card-title">Projects</h5></div>
+        <div class="card-header"><h5 class="card-title"><a href="{{ url_for('projects.index') }}">Projects</h5></a></div>
         <div class="card-body">
             <p class="card-text">
-                <span class="" style="font-size:3em">0</span>This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.
+                <span class="" style="font-size:3em">{{projects|length}}</span>
+                <a href="{{ url_for('projects.index') }}">Containers organized by project.</a>
                 {% if session.su == 'Yes' %}
                     <a class="btn btn-secondary btn-lg" data-toggle="modal" data-target="#createCT">
                          New Project
@@ -65,7 +66,7 @@
         </div>
     </div>
     <div class="card card-border-secondary">
-        <div class="card-header"><h5 class="card-title">Containers</h5></div>
+        <div class="card-header"><h5 class="card-title"><a href="{{ url_for('containers.index') }}">Containers</a></h5></div>
         <div class="card-body">
             <p class="card-text">
                 <span class="" style="font-size:3em">
@@ -181,37 +182,6 @@
                 // Copy CT
                 $('#advancedcopy').click(function(e){ e.preventDefault(); $('#advancedcopydiv').slideToggle(); });
 
-                $(".backingstore").on('change',function(){
-                        var _val = $(this).val();
-                        var _lvm = $(this).closest('.advanced-wrapper').find('.lvm');
-                        var _zfs = $(this).closest('.advanced-wrapper').find('.zfs');
-                        var _directory = $(this).closest('.advanced-wrapper').find('.directory');
-                        if( _val == 'lvm'){
-                            _lvm.removeClass("d-none");
-                            _directory.addClass("d-none");
-                            _zfs.addClass("d-none");
-                        }
-                        else if ( _val == 'directory' ){
-                            _directory.removeClass("d-none");
-                            _lvm.addClass("d-none");
-                            _zfs.addClass("d-none");
-                        }
-                        else if ( _val == 'zfs'){
-                            _zfs.removeClass("d-none");
-                            _lvm.addClass("d-none");
-                            _directory.addClass("d-none");
-                        }
-                        else{
-                            _zfs.addClass("d-none");
-                            _directory.addClass("d-none");
-                            _lvm.addClass("d-none");
-                        }
-                    });
-
-                    $('.modalbutton').on('click', function () {
-                        $('.buttons-modal-footer').addClass("d-none");
-                        $('.loader-modal-footer').removeClass("d-none");
-                    })
             });{% endif %}
 </script>
 

@@ -10,23 +10,24 @@ def index():
     List containers
     """
     projects = g.api.get_projects()
-    
-    print(projects)
-    #~ clonable_containers = []
-    #~ for container in containers:
-        #~ if container['state'] == 'STOPPED':
-            #~ clonable_containers.append(container['name'])
     context = {
         'projects': projects,
-        #~ 'clonable_containers': clonable_containers,
-        #~ 'host': g.api.get_host(),
-        #~ 'templates': lwp.get_templates_list(),
-        #~ 'storage_repos': storage_repos,
-        #~ 'auth': AUTH,
     }
     return render_template('list.html', **context)
     
-@mod.route('/projects/<project_name>')
+@mod.route('/projects/<id>')
+@mod.route('/projects/<id>/<add_container>')
 @if_logged_in()
-def edit(project_name):
-    return render_template('list.html', **context)
+def edit(id, add_container=False):
+    projects = g.api.get_projects()
+    project = g.api.get_project(id)
+    context = {
+        'projects': projects,
+        'project': project,
+        'add_container': False,
+    }
+    if add_container and add_container == 'add_container':
+        context['add_container'] = True
+        context['containers'] = g.api.get_containers()
+        #~ return render_template('add_container.html', **context)
+    return render_template('project.html', **context)

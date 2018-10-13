@@ -4,99 +4,69 @@
 
 {#% set span = {'RUNNING':'success','FROZEN':'info','STOPPED':'important'} %#}
 {% set start_action = {'STOPPED':'start','FROZEN':'unfreeze'} %}
-<div class="col-lg-8">
-    {{ super() }}
-    <h3 class="head">
-        {% if container.state== 'RUNNING' %}
-            <i class="fas fa-circle text-success" aria-hidden="true"></i>&nbsp;
-        {% elif container.state == 'FROZEN' %}
-            <i class="fas fa-circle text-warning" aria-hidden="true"></i>&nbsp;
-        {% else %}
-            <i class="fas fa-circle text-danger" aria-hidden="true"></i>&nbsp;
-        {% endif %}
-        {{container.name}} &bull; {{container.settings.utsname }}
-    </h3>
-    <p style="padding-left:2em">
-        {{container.ips}}
-        {{container.interfaces}}
-        {% for network in container.settings.networks.values() %}
-            {% if network.ipv4|length > 0 %}
-                    / IPv4 {% for ip in network.ipv4 %}{{ip}}{% endfor %}
-                    {% if network.flags == 'up' %}
+    <div class="col-lg-8">
+        {{ super() }}
+        <h3 class="head">
+            {% if container.state== 'RUNNING' %}
+                <i class="fas fa-circle text-success" aria-hidden="true"></i>&nbsp;
+            {% elif container.state == 'FROZEN' %}
+                <i class="fas fa-circle text-warning" aria-hidden="true"></i>&nbsp;
+            {% else %}
+                <i class="fas fa-circle text-danger" aria-hidden="true"></i>&nbsp;
             {% endif %}
-            <i class="fas fa-circle text-success" aria-hidden="true"></i>{% else %}<i class="fas fa-circle text-muted" aria-hidden="true"></i>{% endif %}
-        {% endfor %}
+            {{container.name}} &bull; {{container.settings.utsname }}
+        </h3>
 
-       / CPU {% if container['settings']['cgroup.cpuset.cpus'] %}{{ container['settings']['cgroup.cpuset.cpus'] [0]}}{% else %}All{% endif %}
-       / Memory <span id="{{ container.name }}">{% if container['runtime']['memory.usage_in_bytes'] %}{{ render_memory_wrapper(container['runtime']['memory.usage_in_bytes']) }}/{% endif %}{% if container['settings']['cgroup.memory.limit_in_bytes'] %}{{ container['settings']['cgroup.memory.limit_in_bytes'][0] }}{% else %}{{ host.memory.total }}{% endif %}&nbsp;&nbsp;</span>
-        / OS {{container.os_release.PRETTY_NAME}} / Arch.{{container.settings.arch}}
-        
-    </p>
-</div>
-<div class="col-lg-4">
-    <div class="text-right">
-        <div class="btn-toolbar">
-            <div class="btn-group">
-                {% if container.state != 'STOPPED' %}
+    </div>
+    <div class="col-lg-4">
+        <div class="text-right">
+            <div class="btn-toolbar">
+                <div class="btn-group">
+                    {% if container.state != 'STOPPED' %}
+                        
+                        <span class="btn btn-link"><strong>Pid :</strong> {{ container.pid }}</span>
+                    {% endif %}
                     
-                    <span class="btn btn-link"><strong>Pid :</strong> {{ container.pid }}</span>
-                {% endif %}
-                
-                {% if container.state == 'RUNNING' %}
-                    <span class="btn btn-link">{{ container.state }}</span>
-                {% else %}
-                    <a id="start-container" class="btn btn-primary" ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content" {% if container.state == 'STOPPED' or container.state == 'FROZEN' %}ic-get-from="{{ url_for('containers.action', name=container.name, action=start_action[container.state], from='edit') }}"{% endif %}>
-                    Start<i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
+                    {% if container.state == 'RUNNING' %}
+                        <span class="btn btn-link">{{ container.state }}</span>
+                    {% else %}
+                        <a id="start-container" class="btn btn-primary" ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content" {% if container.state == 'STOPPED' or container.state == 'FROZEN' %}ic-get-from="{{ url_for('containers.action', name=container.name, action=start_action[container.state], from='edit') }}"{% endif %}>
+                        Start<i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
+                        </a>
+                    {% endif %}
+                    
+                    <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if container.state == 'STOPPED' %} disabled{% endif %}" {% if container.state == 'RUNNING' or container.state == 'FROZEN' %}ic-get-from="{{ url_for('containers.action', name=container.name, action='stop', from='edit') }}"{% endif %}>
+                        Stop <i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
                     </a>
-                {% endif %}
-                
-                <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if container.state == 'STOPPED' %} disabled{% endif %}" {% if container.state == 'RUNNING' or container.state == 'FROZEN' %}ic-get-from="{{ url_for('containers.action', name=container.name, action='stop', from='edit') }}"{% endif %}>
-                    Stop <i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
-                </a>
-                <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if container.state == 'FROZEN' or container.state == 'STOPPED' %} disabled{% endif %}" {% if container.state == 'RUNNING' %}ic-get-from="{{ url_for('containers.action', name=container.name, action='freeze', from='edit') }}"{% endif %}>
-                    Freeze <i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
-                </a>
+                    <a ic-select-from-response="#main-content" ic-replace-target="false" ic-target="#main-content"  class="btn btn-primary{% if container.state == 'FROZEN' or container.state == 'STOPPED' %} disabled{% endif %}" {% if container.state == 'RUNNING' %}ic-get-from="{{ url_for('containers.action', name=container.name, action='freeze', from='edit') }}"{% endif %}>
+                        Freeze <i class="fa fa-spinner fa-spin ic-indicator" style="display:none"></i>
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 </div>
-<div class="col-lg-12">
-        <div class="row">
-            <div class="col-lg-9">
-                <ul class="nav nav-pills">
-                    {% if container.state == "STOPPED" %}
-                        <li><a class="btn btn-outline-primary" data-toggle="modal" data-target="#copyCT{{container.name}}">Copy</a></li>
-                    {% endif %}
-                    {% if storage_repository %}
-                        <li><a class="btn btn-outline-info" data-toggle="modal" data-target="#backupCT{{container.name}}">Create Backup</a></li>
-                    {% endif %}
-                </ul>
-                <hr>
-                <ul class="nav nav-pills">
-                    <li class="text-center">
-                        <h5 id="{{container.name}}">&nbsp;&nbsp;{% if render_memory_wrapper(container['runtime']['memory.usage_in_bytes'])  %}{{ render_memory_wrapper(container['runtime']['memory.usage_in_bytes']) }}/{% endif %}{% if container['settings']['cgroup.memory.limit_in_bytes'] %}{{ container['settings']['cgroup.memory.limit_in_bytes'][0] }}{% else %}{{ host.memory.total }}{% endif %}&nbsp;&nbsp;</h5>
-                        Memory
-                    </li>
-                    <li class="text-center">
-                        <h5>&nbsp;&nbsp;{% if container['settings']['cgroup.cpuset.cpus']  %}{{ container['settings']['cgroup.cpuset.cpus'][0] }}{% else %}All{% endif %}&nbsp;&nbsp;</h5>
-                        CPU
-                    </li>
-                    {#
-                    <li class="text-center">
-                        <h5>&nbsp;&nbsp;{{ all_info.link }}&nbsp;&nbsp;</h5>
-                        <i class="fa fa-long-arrow-down" aria-hidden="true"></i>{{all_info.rx_bytes}}/<i class="fa fa-long-arrow-up" aria-hidden="true"></i>{{all_info.tx_bytes}}
-                    </li>
-                        #}
-                    <li class="text-center">
-                        <h5>&nbsp;&nbsp;{{ container.snapshots|length }}&nbsp;&nbsp;</h5>
-                        Snapshots
-                    </li>
-                </ul>
-            </div>
+<div class="row">
+    <div class="col-lg-12">
+        <p style="padding-left:3em">
+            {{container.ips}}
+            {{container.interfaces}}
+            {% for network in container.settings.networks.values() %}
+                {% if network.ipv4|length > 0 %}
+                        / IPv4 {% for ip in network.ipv4 %}{{ip}}{% endfor %}
+                        {% if network.flags == 'up' %}
+                {% endif %}
+                <i class="fas fa-circle text-success" aria-hidden="true"></i>{% else %}<i class="fas fa-circle text-muted" aria-hidden="true"></i>{% endif %}
+            {% endfor %}
 
-</div>
+           / CPU {% if container['settings']['cgroup.cpuset.cpus'] %}{{ container['settings']['cgroup.cpuset.cpus'] [0]}}{% else %}All{% endif %}
+           / Memory <span id="{{ container.name }}">{% if container['runtime']['memory.usage_in_bytes'] %}{{ render_memory_wrapper(container['runtime']['memory.usage_in_bytes']) }}/{% endif %}{% if container['settings']['cgroup.memory.limit_in_bytes'] %}{{ container['settings']['cgroup.memory.limit_in_bytes'][0] }}{% else %}{{ host.memory.total }}{% endif %}&nbsp;&nbsp;</span>
+            / OS {{container.os_release.PRETTY_NAME}} / Arch.{{container.settings.arch}}
+            
+        </p>
+    </div>
 </div><!-- end main col -->
-</div><!-- end main row -->
+
 <div class="row" style="margin-top:2em;">
 <div class="col-lg-2">
     <ul class="nav flex-column nav-pills" id="containerTabs" role="tablist" aria-orientation="vertical">
@@ -131,11 +101,41 @@
             <form id="config" action="{{ url_for('containers.edit', container_name=container.name) }}" method="post">
         #}
         <div class="tab-pane fade show active" id="info" role="tabpanel" aria-labelledby="info-tab">
+            <ul class="nav nav-pills">
+                {% if container.state == "STOPPED" %}
+                    <li><a class="btn btn-outline-primary" data-toggle="modal" data-target="#copyCT{{container.name}}">Copy</a></li>
+                {% endif %}
+                {% if storage_repository %}
+                    <li><a class="btn btn-outline-info" data-toggle="modal" data-target="#backupCT{{container.name}}">Create Backup</a></li>
+                {% endif %}
+                <li class="text-center">
+                    <h5 id="{{container.name}}">&nbsp;&nbsp;{% if render_memory_wrapper(container['runtime']['memory.usage_in_bytes'])  %}{{ render_memory_wrapper(container['runtime']['memory.usage_in_bytes']) }}/{% endif %}{% if container['settings']['cgroup.memory.limit_in_bytes'] %}{{ container['settings']['cgroup.memory.limit_in_bytes'][0] }}{% else %}{{ host.memory.total }}{% endif %}&nbsp;&nbsp;</h5>
+                    Memory
+                </li>
+                <li class="text-center">
+                    <h5>&nbsp;&nbsp;{% if container['settings']['cgroup.cpuset.cpus']  %}{{ container['settings']['cgroup.cpuset.cpus'][0] }}{% else %}All{% endif %}&nbsp;&nbsp;</h5>
+                    CPU
+                </li>
+                {#
+                <li class="text-center">
+                    <h5>&nbsp;&nbsp;{{ all_info.link }}&nbsp;&nbsp;</h5>
+                    <i class="fa fa-long-arrow-down" aria-hidden="true"></i>{{all_info.rx_bytes}}/<i class="fa fa-long-arrow-up" aria-hidden="true"></i>{{all_info.tx_bytes}}
+                </li>
+                    #}
+                <li class="text-center">
+                    <h5>&nbsp;&nbsp;{{ container.snapshots|length }}&nbsp;&nbsp;</h5>
+                    Snapshots
+                </li>
+            </ul>
             <p>
-                <ul class="list-group">
-                  <li class="list-group-item">Start on boot  {% if container['settings']['start.auto'] == '1' %}Enabled{% else %}Disabled{% endif %}</li>
-                  <li class="list-group-item">{{ container['settings']['start.delay'] }} {{ container['settings']['start.order'] }}</li>
-                </ul>            
+                <dl class="row">
+                    <dt class="col-sm-3">Start on boot</dt>
+                    <dd class="col-sm-9">{% if container['settings']['start.auto'] == '1' %}Enabled{% else %}Disabled{% endif %}</dd>
+                    <dt class="col-sm-3">Start order</dt>
+                    <dd class="col-sm-9">{{ container['settings']['start.order'] }}</dd>
+                    <dt class="col-sm-3">Start delay</dt>
+                    <dd class="col-sm-9">{{ container['settings']['start.delay'] }}</dd>
+                </dl>
             </p>
         </div>
         <div class="tab-pane fade show" id="boot" role="tabpanel" aria-labelledby="boot-tab">
@@ -325,7 +325,7 @@
                 </div>
             </div>
         </div>
-</div>
+
         {#
         <div class="tab-pane fade" id="misc" role="tabpanel" aria-labelledby="misc-tab">
             <div class="card">

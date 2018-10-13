@@ -17,16 +17,18 @@ def home():
     #~ gantry = GantryClient(config)
     host = g.api.get_host()
     containers = g.api.get_containers()
+    projects = g.api.get_projects()
     clonable_containers = []
     for container in containers:
         if container['state'] == 'STOPPED':
             clonable_containers.append(container['name'])
     context = {
         'containers': containers,
+        'projects': projects,
         'clonable_containers': clonable_containers,
         'host': host,
         #~ 'templates': lwp.get_templates_list(),
         #~ 'storage_repos': storage_repos,
         #~ 'auth': AUTH,
     }
-    return render_template('index.html', **context)
+    return render_template('dashboard.html', **context)

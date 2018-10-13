@@ -1,0 +1,158 @@
+{% extends "layout.html" %}
+{% block title %}Create contianer{% endblock %}
+{% block content %}
+<div class="col-lg-12">
+{{ super() }}
+
+<div class="card">
+    <div class="card-header"><h2>Create container</div>
+
+<form method="post" action="{{ url_for('containers.create') }}" name="create_container">
+    <div class="card-body">
+
+        <div class="form-group">
+            <label>Container name</label>
+            <input class="form-control  form-control-lg" id="inputName" type="text" pattern="^\w[\w.-]+$" placeholder="Name" name="name" value="" required>
+        </div>
+        {#
+        <div class="form-group">
+            <select class="form-control  form-control-lg" id="selectTemplate" name="template">
+                {% for template in templates %}<option value="{{ template }}" {% if template == 'ubuntu' %}selected{% endif %}>{{ template }}</option>{% endfor %}
+            </select>
+        </div>
+            #}
+        <fieldset><legend>Select OS</legend>
+        <div class="card-deck">
+            {% for template in templates %}
+
+                  <div class="card border-primary mb-3">
+                      {#
+                    <img class="card-img-top" src="..." alt="Card image cap">
+                          #}
+                    <div class="card-body">
+                        <h3 class="card-title">
+                            <div class="custom-control custom-radio">
+                                <input class="custom-control-input" id="check{{template.template}}" name="template" value="{{template.template}}" type="radio">
+                                <label class="custom-control-label" for="check{{template.template}}">
+                                    {{template.os}}
+                                </label>
+                            </div>
+                        </h3>
+                        <p class="card-text">{{template.description}}</p>
+                        <p class="card-text">
+                            <div class="row">
+                                <div class="col-lg-6">
+                                    {% for arch in template.archs %}
+                                        <div class="custom-control custom-radio">
+                                            <input class="custom-control-input" id="check{{template.template}}{{arch}}" name="arch" value="{{arch}}" type="radio">
+                                            <label class="custom-control-label" for="check{{template.template}}{{arch}}">
+                                                {{arch}}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                <div class="col-lg-6">
+                                    {% for release in template.releases %}
+                                        <div class="custom-control custom-radio">
+                                            <input class="custom-control-input" id="check{{template.template}}{{release}}" name="release" value="{{release}}" type="radio">
+                                            <label class="custom-control-label" for="check{{template.template}}{{release}}">
+                                                {{release}}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </p>
+                    </div>
+                  </div>
+                {% if loop.index is divisibleby(4) %}
+                </div><div class="card-deck">
+                {% endif %}
+            {% endfor %}
+        </div>
+        </fieldset>
+        <span class="btn btn-link" data-toggle="collapse" href="#advancedcreatediv" role="button" aria-expanded="true" aria-controls="advancedcreatediv">Advanced options</span>
+        <div id="advancedcreatediv" class="collapse advanced-wrapper">
+            <br />
+            <div class="form-group">
+                <label for="inputCommand">LXC Container configuration</label>
+                <input class="form-control" type="text" id="inputCommand" name="command" placeholder="Container command">
+            </div>
+            <div class="form-group">
+                <label for="backingstorecreate">Backing store*</label>
+                <select class="form-control backingstore" id="backingstorecreate" name="backingstore">
+                    <option value="default" selected>Default</option>
+                    <option value="directory">Directory</option>
+                    <option value="btrfs">BTRFS</option>
+                    <option value="lvm">LVM</option>
+                    <option value="zfs">ZFS</option>
+                </select>
+                <span class="help-inline"><small>*By default it is 'none', which is a simple directory tree under /var/lib/lxc/&lt;name&gt;/rootfs</small></span>
+            </div>
+            <div class="form-group d-none directory">
+                <label for="inputDirectory">Custom Directory</label>
+                <input class="form-control" type="text" id="inputDirectory" name="dir" placeholder="Directory">
+            </div>
+            <div class="form-group d-none lvm">
+                <label for="inputLV">LV Name</label>
+                <input class="form-control" type="text" id="inputLV" name="lvname" placeholder="LV Name">
+                <label for="inputVG">VG Name</label>
+                <input class="form-control" type="text" id="inputVG" name="vgname" placeholder="VG Name">
+                <label for="inputFS">File system</label>
+                <input class="form-control" type="text" id="inputFS" name="fstype" placeholder="ext4">
+                <label for="inputFSSize">Size</label>
+                <input class="form-control" type="text" id="inputFSSize" name="fssize" placeholder="500M">
+            </div>
+            <div class="form-group d-none zfs">
+                <label for="inputZFS">zpool Name</label>
+                <input class="form-control" type="text" id="inputZFS" name="zpoolname" placeholder="lxc">
+            </div>
+        </div>
+    </div>
+    <div class="card-footer">
+        <div class="buttons-modal-footer">
+            {% include 'includes/modal_cancel_btn.html' %}
+            <button type="submit" class="btn btn-success modalbutton">Create</button>
+        </div>
+        {% include 'includes/spinner.html' %}
+    </div>
+    </div>
+</form>
+{% endblock %}
+{% block script %}
+<script>
+    $(document).ready(function(){
+        $(".backingstore").on('change',function(){
+                var _val = $(this).val();
+                var _lvm = $(this).closest('.advanced-wrapper').find('.lvm');
+                var _zfs = $(this).closest('.advanced-wrapper').find('.zfs');
+                var _directory = $(this).closest('.advanced-wrapper').find('.directory');
+                if( _val == 'lvm'){
+                    _lvm.removeClass("d-none");
+                    _directory.addClass("d-none");
+                    _zfs.addClass("d-none");
+                }
+                else if ( _val == 'directory' ){
+                    _directory.removeClass("d-none");
+                    _lvm.addClass("d-none");
+                    _zfs.addClass("d-none");
+                }
+                else if ( _val == 'zfs'){
+                    _zfs.removeClass("d-none");
+                    _lvm.addClass("d-none");
+                    _directory.addClass("d-none");
+                }
+                else{
+                    _zfs.addClass("d-none");
+                    _directory.addClass("d-none");
+                    _lvm.addClass("d-none");
+                }
+            });
+
+            $('.modalbutton').on('click', function () {
+                $('.buttons-modal-footer').addClass("d-none");
+                $('.loader-modal-footer').removeClass("d-none");
+            })
+    });
+</script>
+{% endblock %}

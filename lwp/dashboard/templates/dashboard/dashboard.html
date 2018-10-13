@@ -31,7 +31,7 @@
             </div>
             <div class="col-lg-6 text-right">
             {% if session.su == 'Yes' %}
-            <a class="btn btn-primary btn-lg" data-toggle="modal" data-target="#createCT">
+            <a class="btn btn-primary btn-lg" href="{{url_for('container.create')}}">
                  Create container
             </a>
             <hr>
@@ -77,7 +77,7 @@
 
 {% if session.su == 'Yes' %}
     {% include "includes/modal_reboot.html" %}
-    {% include "includes/modal_create.html" %}
+    {#% include "includes/modal_create.html" %#}
 {% endif %}
 {% include "includes/modal_clone.html" %}
 
@@ -162,7 +162,7 @@
 
             $(function() {
                 refresh();
-                {% if session.su == 'Yes' and containers == [] %}$('#createCT').modal('show'){% endif %}
+                {#% if session.su == 'Yes' and containers == [] %}$('#createCT').modal('show'){% endif %#}
                 window.setInterval('refresh()', 15000);
             });
 
@@ -174,7 +174,7 @@
                     $('#destroy').modal('show');
                 });
                 // Create CT
-                $('#advancedcreate').click(function(e){ e.preventDefault(); $('#advancedcreatediv').slideToggle(); });
+                {#$('#advancedcreate').click(function(e){ e.preventDefault(); $('#advancedcreatediv').slideToggle(); });#}
 
                 // Copy CT
                 $('#advancedcopy').click(function(e){ e.preventDefault(); $('#advancedcopydiv').slideToggle(); });

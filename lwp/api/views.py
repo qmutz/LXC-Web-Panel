@@ -70,12 +70,25 @@ def get_projects():
     for obj in results:
         _list.append(model_to_dict(obj))
     return jsonify(status="ok", data=_list), 200
-    #~ for c in lxc.list_containers():
-        #~ container = lxc.Container(c)
-        #~ schema = ContainerSchema()
-        #~ result = schema.dump(container)
-        #~ _list.append(result[0])
-    #~ return jsonify(_list)
+    
+@mod.route('/api/v1/project/<id>/')
+@api_auth()
+def get_project(id):
+    """
+    Returns project and attached containers.
+    """
+    #~ _list = []
+    results = Projects.select().where(Projects.id == id)
+    print(results)
+    #~ if len(results) == 0:
+        #~ admin = Users.get(Users.name=='admin')
+        #~ Projects.create(title='Default',description='Default project to start with',admin=admin)
+    #~ for obj in results:
+        #~ _list.append(model_to_dict(obj))
+    if len(results) == 0:
+        return jsonify({'status':"error", 'error':"Not found"}), 404
+    return jsonify(status="ok", data=model_to_dict(results[0])), 200
+
     
 @mod.route('/api/v1/container/')
 @api_auth()
@@ -92,7 +105,6 @@ def get_containers():
     return jsonify(_list)
 
 
-
 @mod.route('/api/v1/container/<name>/')
 @api_auth()
 def get_container(name):
@@ -100,7 +112,7 @@ def get_container(name):
     schema = ContainerSchema()
     result = schema.dump(container)
     return jsonify(result[0])
-
+    
 
 @mod.route('/api/v1/container/config/<name>/', methods=['POST'])
 @api_auth()
@@ -166,34 +178,58 @@ def container_operation(name):
 
 @mod.route('/api/v1/container/', methods=['PUT'])
 @api_auth()
-def add_container():
+def create_container():
     data = request.get_json(force=True)
     if data is None:
         return jsonify(status="error", error="Bad request"), 400
 
-    if (not(('template' in data) or ('clone' in data)) or ('name' not in data)):
+    if (not('template' in data) or ('name' not in data)):
         return jsonify(status="error", error="Bad request"), 402
 
     if 'template' in data:
         # we want a new container
-        if 'store' not in data:
-            data['store'] = ""
-        if 'xargs' not in data:
-            data['xargs'] = ""
-
-        try:
-            lxc.create(data['name'], data['template'], data['store'], data['xargs'])
-        except lxc.ContainerAlreadyExists:
-            return jsonify(status="error", error="Container yet exists"), 409
-    else:
+        #~ if 'store' not in data:
+            #~ data['store'] = ""
+        #~ if 'xargs' not in data:
+            #~ data['xargs'] = ""
+        container = lxc.Container(data['name'])
+        template = data['template']
+        storage = data['storage']
+        del data['template']
+        del data['storage']
+        print(data)
+        for key,value in data.items():
+            if value == False or len(value) == 0:
+                del data[key]
+        for key,value in storage.items():
+            if value == False or len(value) == 0:
+                del storage[key]
+        print(data, storage)
+        container.create(template,0,data)
+        #~ try:
+            #~ lxc.create(data['name'], data['template'], data['store'], data['xargs'])
+        #~ except lxc.ContainerAlreadyExists:
+            #~ return jsonify(status="error", error="Container yet exists"), 409
+    #~ else:
         # we want to clone a container
-        try:
-            lxc.clone(data['clone'], data['name'])
-        except lxc.ContainerAlreadyExists:
-            return jsonify(status="error", error="Container yet exists"), 409
+        #~ try:
+            #~ lxc.clone(data['clone'], data['name'])
+        #~ except lxc.ContainerAlreadyExists:
+            #~ return jsonify(status="error", error="Container yet exists"), 409
     return jsonify(status="ok"), 200
 
-
+@mod.route('/api/v1/container/', methods=['PUT'])
+@api_auth()
+def naget_container():
+    data = request.get_json(force=True)
+    if data is None:
+        return jsonify({'status':"error", 'error':"Bad request"}), 400
+    print(data)
+    container = lxc.Container(name)
+    #~ schema = ContainerSchema()
+    #~ result = schema.dump(container)
+    return jsonify(result[0])
+    
 @mod.route('/api/v1/container/<name>/', methods=['DELETE'])
 @api_auth()
 def delete_container(name):
