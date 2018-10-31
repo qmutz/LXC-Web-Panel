@@ -316,4 +316,5 @@ def refresh_memory(name=None):
     elif name == 'host':
         #~ return jsonify(lwp.host['memory']_usage())
         return jsonify(host['memory'])
-    return jsonify({'memusg': lwp.memory_usage(name)})
+    return jsonify(host['memory'])
+    #~ return jsonify({'memusg': lwp.memory_usage(name)})

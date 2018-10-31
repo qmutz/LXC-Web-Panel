@@ -121,7 +121,7 @@ def configure_container(name):
     data = request.get_json(force=True)
     if data is None:
         return jsonify({'status':"error", 'error':"Bad request"}), 400
-    container_config = ConfigObj(container.config_file_name)
+    container_config = ConfigObj(container.config_file_name, stringify=True, list_values=False)
     for option, value in data.items():
         if len(value) > 0:
             if option.startswith('lxc.') is False:
@@ -192,20 +192,24 @@ def create_container():
             #~ data['store'] = ""
         #~ if 'xargs' not in data:
             #~ data['xargs'] = ""
+        final_data = {}
+        final_storage = {}
         container = lxc.Container(data['name'])
         template = data['template']
         storage = data['storage']
         del data['template']
         del data['storage']
-        print(data)
-        for key,value in data.items():
-            if value == False or len(value) == 0:
-                del data[key]
-        for key,value in storage.items():
-            if value == False or len(value) == 0:
-                del storage[key]
+        #~ print(data)
         print(data, storage)
-        container.create(template,0,data)
+        for key,value in data.items():
+            if value != False:
+                if len(value) > 0:
+                    final_data[key] = value
+        for key,value in storage.items():
+            if value != False or len(value) > 0:
+                final_storage[key] = value
+        print(final_data, final_storage)
+        container.create(template,0,final_data)
         #~ try:
             #~ lxc.create(data['name'], data['template'], data['store'], data['xargs'])
         #~ except lxc.ContainerAlreadyExists:

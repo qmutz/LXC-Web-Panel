@@ -8,7 +8,7 @@
 {{ super() }}
 <div class="card card-border-secondary" style="margin-top:60px">
     <div class="card-header">
-        <a class="btn btn-primary btn-lg float-right" data-toggle="modal" data-target="#createCT">
+        <a class="btn btn-primary btn-lg float-right" href="{{ url_for('containers.create')}}">
              Create container
         </a>
         <h2>Containers</h2>
@@ -32,9 +32,17 @@
                             </h4>
                             <p>
                                 {{container['settings']['utsname']}}&nbsp;
+                                {% for ip in container['ips'] %}
+                                        {{ip}} /
+                                {% endfor %}
                                 {% for network in container['settings']['networks'].values() %}
                                     {% if network.ipv4|length > 0 %}
-                                        / {% for ip in network.ipv4 %}{{ip}}{% endfor %}
+                                    
+                                         {% for ip in network.ipv4 %}
+                                            {% if ip not in container['ips'] %}
+                                            / {{ip}} 
+                                            {% endif %}
+                                        {% endfor %}
                                     {% endif %}
                                 {% endfor %}
                             </p>
