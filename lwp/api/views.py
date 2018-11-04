@@ -11,10 +11,18 @@ import lwp
 from lwp.decorators import api_auth
 from lwp.utils import ContainerSchema
 from lwp.database.models import ApiTokens, Users, Projects, Containers, Hosts
+
 # Flask module
 mod = Blueprint('api', __name__)
 
-
+def mix_container(obj, container):
+    _dict = model_to_dict(obj)
+    schema = ContainerSchema()
+    dumped = schema.dump(container)
+    for key, value in dumped.items():
+        _dict[key] = value
+    return _dict
+    
 @mod.route('/api/v1/host/')
 @api_auth()
 def get_host_info():
@@ -50,12 +58,50 @@ def get_host_checks():
         'checks': response,
     }
     return jsonify(info)
+    
+@mod.route('/api/v1/host/hydrate/')
+@api_auth()
+def hydrate_system():
+    """
+    Checks for unmanaged hosts and containers in db.
+    """
+    #~ print("hydrating...")
+    hosts = Hosts.select()
+    admin = Users.get(Users.username=='admin')
+    containers_in_db = Containers.select()
+    containers_in_host = lxc.list_containers()
+    print(len(containers_in_db),len(containers_in_host))
+    if len(containers_in_host) > len(containers_in_db):
+        for cih in containers_in_host:
+            #~ print(cih)
+            search = Containers.select().where(Containers.name==cih)
+            if len(search) == 0:
+                container = Containers.create(name=cih,host=host,admin=admin)
+    
+    return jsonify({})
 
+"""
+class Hosts(BaseModel):
+    hostname = CharField()
+    api_user = CharField(null=True)
+    api_token = CharField(null=True)
+    admin = ForeignKeyField(Users)
+    active = BooleanField(default=True)
+    is_available = BooleanField(default=True)
+        
+
+    name = CharField()
+    host = ForeignKeyField(Hosts)
+    admin = ForeignKeyField(Users)
+    locked = BooleanField(default=False)
+    project = ForeignKeyField(Projects, null=True)
+    created_date = DateTimeField(default=datetime.datetime.now)
+"""
 @mod.route('/api/v1/project/')
 @api_auth()
 def get_projects():
     """
-    Returns projects on the current machine and brief status information.
+    Returns projects.
         title = CharField()
     description = TextField(null=True)
     admin = ForeignKeyField(Users)
@@ -65,31 +111,63 @@ def get_projects():
     _list = []
     results = Projects.select()
     if len(results) == 0:
-        admin = Users.get(Users.name=='admin')
+        admin = Users.get(Users.username=='admin')
         Projects.create(title='Default',description='Default project to start with',admin=admin)
+        results = Projects.select()
     for obj in results:
         _list.append(model_to_dict(obj))
-    return jsonify(status="ok", data=_list), 200
-    
+    return jsonify(status="ok", objects=_list), 200
+
+
 @mod.route('/api/v1/project/<id>/')
 @api_auth()
 def get_project(id):
     """
     Returns project and attached containers.
     """
-    #~ _list = []
-    results = Projects.select().where(Projects.id == id)
-    print(results)
-    #~ if len(results) == 0:
-        #~ admin = Users.get(Users.name=='admin')
-        #~ Projects.create(title='Default',description='Default project to start with',admin=admin)
-    #~ for obj in results:
-        #~ _list.append(model_to_dict(obj))
-    if len(results) == 0:
+    project = Projects.get(Projects.id ==id)
+    if not project:
         return jsonify({'status':"error", 'error':"Not found"}), 404
-    return jsonify(status="ok", data=model_to_dict(results[0])), 200
+    objects = model_to_dict(project)
+    objects['containers'] = []
+    for c in project.get_containers():
+        _dict = mix_container(c, lxc.Container(c.name))
+        objects['containers'].append(_dict)
+    return jsonify(status="ok", objects=objects), 200
 
+@mod.route('/api/v1/project/<id>/assign/', methods=['POST'])
+@api_auth()
+def assign_project(id):
+    """
+    Assigns to project a container.
+    """
+    project = Projects.get(Projects.id ==id)
+    if not project:
+        return jsonify({'status':"error", 'error':"Not found"}), 404
+    data = request.get_json(force=True)
+    container = Containers.get(Containers.name == data['container'])
+    container.project = project
+    container.save()
+    return jsonify(status="ok", data=model_to_dict(container)), 200
     
+@mod.route('/api/v1/project/<id>/deassign/', methods=['DELETE'])
+@api_auth()
+def deassign_project(id):
+    """
+    Deassigns all containers from project.
+    """
+    project = Projects.get(Projects.id ==id)
+    if not project:
+        return jsonify({'status':"error", 'error':"Not found"}), 404
+    #~ data = request.get_json(force=True)
+    #~ containers = Containers.select().where(Containers.project == project)
+    for container in Containers.select().where(Containers.project == project):
+        container.project = False
+        container.save()
+    return jsonify(status="ok", data=model_to_dict(project)), 200
+
+
+
 @mod.route('/api/v1/container/')
 @api_auth()
 def get_containers():
@@ -97,11 +175,17 @@ def get_containers():
     Returns lxc containers on the current machine and brief status information.
     """
     _list = []
-    for c in lxc.list_containers():
-        container = lxc.Container(c)
-        schema = ContainerSchema()
-        result = schema.dump(container)
-        _list.append(result[0])
+    containers = Containers.select()
+    for c in Containers.select():
+    #~ for c in lxc.list_containers():
+        #~ dict_obj = model_to_dict(c)
+        #~ container = 
+        _dict = mix_container(c,lxc.Container(c.name))
+        #~ schema = ContainerSchema()
+        #~ result = schema.dump(container)
+        #~ for key, value in result.items():
+            #~ dict_obj[key] = value
+        _list.append(_dict)
     return jsonify(_list)
 
 
@@ -111,7 +195,7 @@ def get_container(name):
     container = lxc.Container(name)
     schema = ContainerSchema()
     result = schema.dump(container)
-    return jsonify(result[0])
+    return jsonify(result)
     
 
 @mod.route('/api/v1/container/config/<name>/', methods=['POST'])
@@ -187,11 +271,6 @@ def create_container():
         return jsonify(status="error", error="Bad request"), 402
 
     if 'template' in data:
-        # we want a new container
-        #~ if 'store' not in data:
-            #~ data['store'] = ""
-        #~ if 'xargs' not in data:
-            #~ data['xargs'] = ""
         final_data = {}
         final_storage = {}
         container = lxc.Container(data['name'])
@@ -199,8 +278,6 @@ def create_container():
         storage = data['storage']
         del data['template']
         del data['storage']
-        #~ print(data)
-        print(data, storage)
         for key,value in data.items():
             if value != False:
                 if len(value) > 0:
@@ -208,7 +285,6 @@ def create_container():
         for key,value in storage.items():
             if value != False or len(value) > 0:
                 final_storage[key] = value
-        print(final_data, final_storage)
         container.create(template,0,final_data)
         #~ try:
             #~ lxc.create(data['name'], data['template'], data['store'], data['xargs'])
@@ -228,10 +304,7 @@ def naget_container():
     data = request.get_json(force=True)
     if data is None:
         return jsonify({'status':"error", 'error':"Bad request"}), 400
-    print(data)
     container = lxc.Container(name)
-    #~ schema = ContainerSchema()
-    #~ result = schema.dump(container)
     return jsonify(result[0])
     
 @mod.route('/api/v1/container/<name>/', methods=['DELETE'])

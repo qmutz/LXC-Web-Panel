@@ -65,16 +65,16 @@ def before_request():
     from lwp.api.client import GantryClient
     from lwp.config import read_config_file
 
-    #~ config = 
     check_session_limit()
     g.api = GantryClient(read_config_file())
+    #~ g.api.hydrate()
     #~ g.db = connect_db(app.config['DATABASE'])
 
 
-@app.teardown_request
-def teardown_request(exception):
-    """
-    executes functions after all requests
-    """
-    if hasattr(g, 'db'):
-        g.db.close()
+#~ @app.teardown_request
+#~ def teardown_request(exception):
+    #~ """
+    #~ executes functions after all requests
+    #~ """
+    #~ if hasattr(g, 'db'):
+        #~ g.db.close()

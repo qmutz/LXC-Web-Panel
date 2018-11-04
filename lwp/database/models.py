@@ -44,6 +44,10 @@ class Projects(BaseModel):
         
     class Meta:
         table_name = 'projects'
+    
+    def get_containers(self):
+        result = Containers.select().where(Containers.project==self.id)
+        return result
 
 
 class Hosts(BaseModel):
@@ -66,6 +70,7 @@ class Containers(BaseModel):
     host = ForeignKeyField(Hosts)
     admin = ForeignKeyField(Users)
     locked = BooleanField(default=False)
+    project = ForeignKeyField(Projects, null=True)
     created_date = DateTimeField(default=datetime.datetime.now)
     
     def __str__(self):
@@ -106,19 +111,3 @@ class ApiTokens(BaseModel):
     class Meta:
         table_name = 'api_tokens'
         primary_key = False
-
-#~ class Machine(BaseModel):
-    #~ bucket_token = CharField(null=True)
-    #~ machine_name = CharField(null=True)
-
-    #~ class Meta:
-        #~ table_name = 'machine'
-        #~ primary_key = False
-
-#~ class SqliteSequence(BaseModel):
-    #~ name = CharField(null=True)  # 
-    #~ seq = IntegerField(null=True)  # 
-
-    #~ class Meta:
-        #~ table_name = 'sqlite_sequence'
-        #~ primary_key = False

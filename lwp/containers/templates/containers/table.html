@@ -1,0 +1,101 @@
+{% macro memory_color(value) -%}{% if value != 0 %}{% if 0 <= value <= 511 %}success{% elif 512 <= value < 980 %}warning{% else %}important{% endif %}{% endif %}{%- endmacro %}
+{% macro render_memory_wrapper(value, limit) -%}
+    {% if value != 0 %}
+        <span class="badge badge-{{ memory_color(value) }}">{{ value }}{% if limit != '' %} / {{ limit }}{% endif %} MB</span>
+    {% else %}
+        <span class="badge badge-success"></span>
+    {% endif %}
+{%- endmacro %}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>OS</th>
+            <th>Host</th>
+            <th>State</th>
+            <th style="text-align:right;">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for container in containers %}
+            <tr class="">
+                <td style="width:55%">
+                    <a href="{{ url_for('containers.edit',container_name=container.name) }}" title="Click to edit {{container.name}}">
+                        <h4>
+                            {{container.name}}
+                        </h4>
+                        <p>
+                            {{container['settings']['utsname']}}&nbsp;
+                            {% for ip in container['ips'] %}
+                                    {{ip}} /
+                            {% endfor %}
+                            {% for network in container['settings']['networks'].values() %}
+                                {% if network.ipv4|length > 0 %}
+                                
+                                     {% for ip in network.ipv4 %}
+                                        {% if ip not in container['ips'] %}
+                                        / {{ip}} 
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                        </p>
+                    </a>
+                </td>
+                <td>{{container.os_release.PRETTY_NAME}}<br><span class="text-muted">{{container['settings']['arch']}}</span></td>
+                <td>{{container.host.hostname}}</td>
+                <td>
+                    <div  style="vertical-align:middle;text-align:center;line-height:5em;">
+                    {% if container.state == 'RUNNING' %}
+                        <i class="fas fa-circle fa-2x text-success" aria-hidden="true"></i>&nbsp;
+                        <br>
+                        <span id="{{container.name}}">{{ render_memory_wrapper(container['runtime']['memory.usage_in_bytes'], container['runtime']['memory.limit_in_bytes']) }}</span>
+                    {% elif container.state == 'FROZEN' %}
+                        <i class="fas fa-circle fa-2x text-warning" aria-hidden="true"></i>&nbsp;
+                    {% else %}
+                        <i class="fas fa-circle fa-2x text-muted" aria-hidden="true"></i>&nbsp;
+                    {% endif %}
+
+                    </div>
+                </td>
+
+                <td>
+                    <div class="btn-toolbar justify-content-between float-right" role="toolbar">
+                        <div class="btn-group btn-group-toggle">
+                            {% set start_action = {'STOPPED':'start','FROZEN':'unfreeze'} %}
+                            <a class="btn btn-secondary{% if container.state == 'RUNNING' %} disabled{% endif %}"{% if container.state == 'STOPPED' or container.state == 'FROZEN' %} href="{{ url_for('containers.action', name=container.name, action=start_action[container.state], next=request.path) }}"{% endif %}>
+                                Start
+                            </a>
+                            <a class="btn btn-secondary{% if container.state == 'STOPPED' %} disabled{% endif %}"{% if container.state == 'RUNNING' or container.state == 'FROZEN' %} href="{{ url_for('containers.action', name=container.name, action='stop', next=request.path) }}"{% endif %}>
+                                Stop
+                            </a>
+                            <a class="btn btn-secondary{% if container.state == 'FROZEN' or container.state == 'STOPPED' %} disabled{% endif %}"{% if container.state == 'RUNNING' %} href="{{ url_for('containers.action', name=container.name, action='freeze', next=request.path) }}"{% endif %}> 
+                                Freeze
+                            </a>
+                            <div class="dropdown">
+                              <button class="btn btn-link dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <i class="fas fa-ellipsis-h fa-2x" aria-hidden="true"></i>
+                              </button>
+                              <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                    <a href="#" class="dropdown-item" data-toggle="modal" data-target="#copyCT{{container.name}}">Copy</a>
+                                    <a href="#" class="dropdown-item" data-toggle="modal" data-target="#backupCT{{container.name}}">Backup</a>
+                                    <a href="{{url_for('containers.action', action='snapshot_create', name=container.name, next=request.path) }}" class="dropdown-item" data-container-name="{{container.name}}">Snapshot</a>
+                                    <a href="#" class="dropdown-item text-danger destroy" {% if session.su == 'Yes' and container.state == 'STOPPED' %}data-container-name="{{container.name}}"{% endif %}>
+                                    Destroy
+                                    </a>
+                              </div>
+
+                        </div>
+                        </div>
+                    </div>
+                    {% with container_name=container.name %}
+                    {% include "includes/modal_clone.html" %}
+                    {% include "includes/modal_backup.html" %}
+                    {% include "includes/modal_destroy.html" %}
+                    {% endwith %}
+                </td>
+                </tr>            
+    {% endfor %}
+    </tbody>
+</table>

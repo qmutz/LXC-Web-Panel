@@ -2,9 +2,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function
 
-import os
+import os, sys, socket
 import subprocess
-import sys
 import string, random
 def id_generator(size=24, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
@@ -12,7 +11,7 @@ def id_generator(size=24, chars=string.ascii_uppercase + string.digits):
 from flask import Flask, request, session, g, redirect, url_for, abort, render_template
 from lwp.utils import ConfigParser
 #~ from lwp.utils import connect_db, check_session_limit, config
-import lwp.lxclite as lxc
+#~ import lwp.lxclite as lxc
 
 DEBUG = False
 ADDRESS = 'localhost'
@@ -54,7 +53,7 @@ def install(path):
     test_file = os.path.join('/etc',id_generator())
     can_we_install = False
     already_installed = is_already_installed()
-    print(already_installed)
+    #~ print(already_installed)
     context = {
         'can_we_install': can_we_install,
         'already_installed': already_installed,
@@ -103,8 +102,10 @@ def install(path):
 
         database = get_database()
         database.create_tables([Users,ApiTokens,Projects,Hosts,Containers,ContainerTag,Tags])
-        Users.create(name='Admin',username='admin',su='Yes',password=hash_passwd('admin'))
+        admin = Users.create(name='Admin',username='admin',su='Yes',password=hash_passwd('admin'))
         ApiTokens.create(username='admin',description='internal',token=internal_token)
+        host = Hosts.create(hostname=socket.gethostname(), admin=admin, api_token=config['api']['token'], api_user=config['api']['username'])
+        default_project = Projects.create(title='Default',description='Default project to start with',admin=admin)
         subprocess.check_call('touch {}'.format(exec_path), shell=True)
         context['already_installed'] = is_already_installed()
     return render_template('installer.html', **context)

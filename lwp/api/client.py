@@ -14,12 +14,19 @@ class GantryClient():
         self.default_url = 'http://{}:{}{}'.format(self.address, self.port, self.api_prefix)
         self.payload = {'private_token':self.token}
         self.storage_repository = config['storage_repository']
-        
+
+
     def get_payload(self):
         return self.payload.copy()
         
     def build_url(self, endpoint):
         return '{}/{}/'.format(self.default_url, endpoint)
+        
+    def hydrate(self):
+        r = requests.get(self.build_url('host/hydrate'), params=self.get_payload())
+        #~ print(r.text)
+        #~ return r.json()
+        return {}
         
     def set_state(self, name, state):
         data = {'action':state}
@@ -55,12 +62,24 @@ class GantryClient():
     def get_projects(self, su=False):
         payload = self.get_payload()
         r = requests.get(self.build_url('project'), params=payload)
-        return r.json()['data']
+        return r.json()
         
     def get_project(self, id):
         payload = self.get_payload()
         r = requests.get(self.build_url('project/{}'.format(id)), params=payload)
-        return r.json()['data']
+        return r.json()
+        
+    def assign_project(self, id, container):
+        payload = self.get_payload()
+        data = {'container':container}
+        r = requests.post(self.build_url('project/{}/assign'.format(id)), params=payload, json=data)
+        #~ print(r.text)
+        return r.json()
+        
+    def deassign_project(self, id):
+        r = requests.delete(self.build_url('project/{}/deassign'.format(id)), params=self.get_payload())
+        #~ print(r.text)
+        return r.json()
         
     def create_user(self, username, password, name=False, su=False):
         data = {'username':username,'password':password}

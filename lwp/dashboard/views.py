@@ -17,7 +17,7 @@ def home():
     #~ gantry = GantryClient(config)
     host = g.api.get_host()
     containers = g.api.get_containers()
-    projects = g.api.get_projects()
+    projects = g.api.get_projects()['objects']
     clonable_containers = []
     for container in containers:
         if container['state'] == 'STOPPED':

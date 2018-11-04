@@ -53,7 +53,7 @@
         <div class="card-header"><h5 class="card-title">Projects</h5></div>
         <div class="card-body">
             <p class="card-text">
-                <span class="" style="font-size:3em">0</span>This is a longer card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.
+                <span class="" style="font-size:3em">{{projects|length}}</span>&nbsp;you can manage following projects: {% for project in projects %}<a href="{{url_for('projects.details', id=project.id)}}">{{project.title}}&nbsp;</a>{% endfor %}
                 {% if session.su == 'Yes' %}
                     <a class="btn btn-secondary btn-lg" data-toggle="modal" data-target="#createCT">
                          New Project
