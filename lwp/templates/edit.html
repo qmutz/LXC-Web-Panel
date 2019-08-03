@@ -49,8 +49,9 @@
 <div class="row">
     <div class="col-lg-12">
         <p style="padding-left:3em">
-            {{container.ips}}
-            {{container.interfaces}}
+            {% for iface in container.interfaces %}
+            {{iface}} &bull; {{container.ips[loop.index0]}}
+            {% endfor %} /
             {% for network in container.settings.networks.values() %}
                 {% if network.ipv4|length > 0 %}
                         / IPv4 {% for ip in network.ipv4 %}{{ip}}{% endfor %}

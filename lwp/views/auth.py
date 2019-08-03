@@ -47,7 +47,7 @@ def login():
             flash(u'You are logged in!', 'success')
 
             if current_url == url_for('auth.login'):
-                return redirect(url_for('main.home'))
+                return redirect(url_for('dashboard.home'))
             return redirect(current_url)
 
         flash(u'Invalid username or password!', 'error')

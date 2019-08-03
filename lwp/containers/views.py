@@ -146,9 +146,9 @@ def action():
         if request.args['from'] == 'edit':
             return redirect(url_for('containers.edit', container_name=name))
         else:
-            return redirect(url_for('main.home'))
+            return redirect(url_for('dashboard.home'))
     except KeyError:
-        return redirect(url_for('main.home'))
+        return redirect(url_for('dashboard.home'))
 
 @mod.route('/containers/create', methods=['GET', 'POST'])
 @if_logged_in()
@@ -161,7 +161,7 @@ def create():
     if session['su'] != 'Yes':
         return abort(403)
     if request.method == 'POST':
-        print(request.form)
+        # ~ print(request.form)
         name = request.form['name']
         template = request.form.get('template','debian')
         arch = request.form.get('arch','x86_64')

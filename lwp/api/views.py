@@ -82,23 +82,7 @@ def hydrate_system():
     
     return jsonify({})
 
-"""
-class Hosts(BaseModel):
-    hostname = CharField()
-    api_user = CharField(null=True)
-    api_token = CharField(null=True)
-    admin = ForeignKeyField(Users)
-    active = BooleanField(default=True)
-    is_available = BooleanField(default=True)
-        
 
-    name = CharField()
-    host = ForeignKeyField(Hosts)
-    admin = ForeignKeyField(Users)
-    locked = BooleanField(default=False)
-    project = ForeignKeyField(Projects, null=True)
-    created_date = DateTimeField(default=datetime.datetime.now)
-"""
 @mod.route('/api/v1/project/')
 @api_auth()
 def get_projects():
@@ -178,21 +162,18 @@ def get_containers():
     """
     _list = []
     containers = Containers.select()
-    print(lxc.list_containers())
-    for name in lxc.list_containers():
-        #dict_obj = model_to_dict(c)
-        print(name)
-        container = lxc.Container(name)
-        print(dir(container))
-        schema = ContainerSchema()
-        result = schema.dump(container)
-        print(result)
-        _list.append(result)
-    return jsonify(_list)
-    # ~ for c in Containers.select():
-        # ~ _dict = mix_container(c,lxc.Container(c.name))
-        # ~ _list.append(_dict)
+    # ~ print(lxc.list_containers())
+    # ~ for name in lxc.list_containers():
+        # ~ container = lxc.Container(name)
+        # ~ schema = ContainerSchema()
+        # ~ result = schema.dump(container)
+        # ~ _list.append(result)
+        
     # ~ return jsonify(_list)
+    for c in Containers.select():
+        _dict = mix_container(c,lxc.Container(c.name))
+        _list.append(_dict)
+    return jsonify(_list)
 
 
 @mod.route('/api/v1/container/<name>/')

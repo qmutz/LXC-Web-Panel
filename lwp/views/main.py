@@ -396,7 +396,7 @@ def backup_container():
         else:
             flash(u'Failed to backup %s container' % container, 'error')
 
-    return redirect(url_for('main.home'))
+    return redirect(url_for('dashboard.home'))
 
 
 @mod.route('/_refresh_info')
