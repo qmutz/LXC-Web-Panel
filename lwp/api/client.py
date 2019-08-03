@@ -8,6 +8,7 @@ class GantryClient():
     def __init__(self, config):
         #~ self.address = app.config['ADDRESS']
         #~ self.port = app.config['PORT']
+        # ~ print(config.keys())
         self.address = config['global']['address']
         self.port = config['global']['port']
         self.token = config['api']['token']
@@ -114,7 +115,9 @@ class GantryClient():
         return r.status_code
         
     def get_containers(self):
+        # ~ print(self.build_url('container'))
         r = requests.get(self.build_url('container'),params=self.get_payload())
+        # ~ print(r.text)
         return r.json()
         
     def get_container(self,container_name):

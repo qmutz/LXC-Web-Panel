@@ -67,16 +67,18 @@ def hydrate_system():
     """
     #~ print("hydrating...")
     hosts = Hosts.select()
+    # ~ print(hosts[0])
     admin = Users.get(Users.username=='admin')
     containers_in_db = Containers.select()
     containers_in_host = lxc.list_containers()
     print(len(containers_in_db),len(containers_in_host))
+    
     if len(containers_in_host) > len(containers_in_db):
         for cih in containers_in_host:
             #~ print(cih)
             search = Containers.select().where(Containers.name==cih)
             if len(search) == 0:
-                container = Containers.create(name=cih,host=host,admin=admin)
+                container = Containers.create(name=cih, host=hosts[0], admin=admin)
     
     return jsonify({})
 
@@ -125,7 +127,7 @@ def get_project(id):
     """
     Returns project and attached containers.
     """
-    project = Projects.get(Projects.id ==id)
+    project = Projects.get(Projects.id == id)
     if not project:
         return jsonify({'status':"error", 'error':"Not found"}), 404
     objects = model_to_dict(project)
@@ -176,17 +178,21 @@ def get_containers():
     """
     _list = []
     containers = Containers.select()
-    for c in Containers.select():
-    #~ for c in lxc.list_containers():
-        #~ dict_obj = model_to_dict(c)
-        #~ container = 
-        _dict = mix_container(c,lxc.Container(c.name))
-        #~ schema = ContainerSchema()
-        #~ result = schema.dump(container)
-        #~ for key, value in result.items():
-            #~ dict_obj[key] = value
-        _list.append(_dict)
+    print(lxc.list_containers())
+    for name in lxc.list_containers():
+        #dict_obj = model_to_dict(c)
+        print(name)
+        container = lxc.Container(name)
+        print(dir(container))
+        schema = ContainerSchema()
+        result = schema.dump(container)
+        print(result)
+        _list.append(result)
     return jsonify(_list)
+    # ~ for c in Containers.select():
+        # ~ _dict = mix_container(c,lxc.Container(c.name))
+        # ~ _list.append(_dict)
+    # ~ return jsonify(_list)
 
 
 @mod.route('/api/v1/container/<name>/')

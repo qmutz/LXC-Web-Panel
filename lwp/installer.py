@@ -69,7 +69,7 @@ def install(path):
         os.remove(test_file)
     else:
         return render_template('installer.html', **context)
-    context['checks'] = lxc.checkconfig()
+    context['checks'] = {}#lxc.checkconfig()
     if request.method == 'POST':
         from lwp.utils import hash_passwd
         f = request.form

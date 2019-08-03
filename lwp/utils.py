@@ -18,6 +18,12 @@ def format_release(output):
         release = {'PRETTY_NAME':output.decode().strip()}
     return release
 
+"""
+['__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', 
+
+'add_device_net', 'add_device_node', 'append_config_item', 'attach', 'attach_interface', 'attach_wait', 'clear_config', 'clear_config_item', 'clone', 'config_file_name', 'console', 'console_getfd', 'controllable', 'create', 'defined', 'destroy', 'detach_interface', 'freeze', 'get_cgroup_item', 'get_config_item', 'get_config_path', 'get_interfaces', 'get_ips', 'get_keys', 'get_running_config_item', 'init_pid', 'load_config', 'name', 'network', 'reboot', 'remove_device_node', 'rename', 'running', 'save_config', 'set_cgroup_item', 'set_config_item', 'set_config_path', 'shutdown', 'snapshot', 'snapshot_destroy', 'snapshot_list', 'snapshot_restore', 'start', 'state', 'stop', 'unfreeze', 'wait']
+
+"""
 
 class ContainerSchema(Schema):
     name = fields.Str()
@@ -38,14 +44,15 @@ class ContainerSchema(Schema):
     
     def get_os_release(self, obj):
         release_files = ('os-release','lsb-release','fedora-release','redhat-release','centos-release','plamo-release')
-        output = False
+        output = 'Unknown'.encode()
         for release_file in release_files:
-            cmd = "cat {}/etc/{}".format(obj.get_config_item('lxc.rootfs'),release_file)
+            cmd = "cat {}/etc/{}".format(obj.get_config_item('lxc.rootfs.path'),release_file)
             try:
                 output = subprocess.check_output(cmd, shell=True)
             except: pass
             if output:
                 return format_release(output)
+        return output
                 
     def get_runtime_values(self, obj):
         cgroups = [
@@ -81,13 +88,13 @@ class ContainerSchema(Schema):
             'lxc.network.ipv6gw',
         ]
         settings = [
-            'lxc.rootfs',
-            'lxc.rootfs.backend',
-            'lxc.tty',
-            'lxc.utsname',
+            'lxc.rootfs.path',
+            # ~ 'lxc.storage.backend',
+            'lxc.tty.max',
+            'lxc.uts.name',
             'lxc.arch',
-            'lxc.loglevel',
-            'lxc.logfile',
+            'lxc.log.level',
+            'lxc.log.file',
             'lxc.start.auto',
             'lxc.start.delay',
             'lxc.start.order',
@@ -97,7 +104,9 @@ class ContainerSchema(Schema):
         ]
         values = {}
         for setting in settings:
-            values[setting.replace('lxc.','')] = obj.get_config_item(setting)
+            setting_name = setting.replace('lxc.','')
+            # ~ print(setting_name, setting)
+            values[setting_name] = obj.get_config_item(setting)
         values['networks'] = {}
         count = 0
         networks = set(obj.get_config_item('lxc.network'))
