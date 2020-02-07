@@ -1,1 +1,10 @@
+flask
+jinja2
+cryptography
+PyOpenSSL
+peewee
+requests
+marshmallow
+configobj
+distro
 git+https://github.com/lxc/python3-lxc.git
