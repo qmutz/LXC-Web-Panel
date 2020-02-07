@@ -19,7 +19,7 @@ PORT = 5000
 PREFIX = '/install'
 
 # Flask app
-app = Flask('lwp', static_url_path="{0}/static".format(PREFIX))
+app = Flask('pantry', static_url_path="{0}/static".format(PREFIX))
 app.config.from_object(__name__)
 
 def create(path):
@@ -73,9 +73,9 @@ def install(path):
     if request.method == 'POST':
         from pantry.utils import hash_passwd
         f = request.form
-        datadir = f.get('datadir','/var/lwp')
+        datadir = f.get('datadir','/var/pantry')
         create(datadir)
-        conffile = f.get('conffile','/etc/lwp/pantry.conf')
+        conffile = f.get('conffile','/etc/pantry/pantry.conf')
         create(get_parent_path(conffile))
         config = ConfigParser()
         config['global'] = {}
@@ -88,11 +88,11 @@ def install(path):
         config['storage_repository']['local'] = f.get('local_storage_repository','backups')
         create(os.path.join(datadir,config['storage_repository']['local']))
         config['database'] = {}
-        config['database']['file'] = f.get('database_uri','sqlite:////var/lwp/pantry.db')
+        config['database']['file'] = f.get('database_uri','sqlite:////var/pantry/pantry.db')
         config['session'] = {}
         config['session']['time'] = f.get('time','10')
         config['api'] = {}
-        internal_token = hash_passwd('lwp')
+        internal_token = hash_passwd('pantry')
         config['api']['username'] = f.get('api_username','admin')
         config['api']['token'] = f.get('api_token',internal_token)
         with open(conffile, 'w') as configfile:

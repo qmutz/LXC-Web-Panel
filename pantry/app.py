@@ -15,7 +15,7 @@ from pantry.api.views import mod as api
 from pantry.containers.views import mod as containers
 from pantry.projects.views import mod as projects
 
-SESSION_SECRET_FILE = '/etc/lwp/session_secret'
+SESSION_SECRET_FILE = '/etc/pantry/session_secret'
 try:
     SECRET_KEY = open(SESSION_SECRET_FILE, 'br').read()
 except IOError:
@@ -34,7 +34,7 @@ PREFIX = config.get('global', 'prefix')
 
 #~ database = FlaskDB()
 
-app = Flask('lwp', static_url_path="{0}/static".format(PREFIX))
+app = Flask('pantry', static_url_path="{0}/static".format(PREFIX))
 app.config.from_object(__name__)
 app.register_blueprint(dashboard, url_prefix=PREFIX)
 app.register_blueprint(main.mod, url_prefix=PREFIX)

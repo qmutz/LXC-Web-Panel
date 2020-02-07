@@ -1,7 +1,7 @@
 import os
 from configparser import ConfigParser, RawConfigParser
 
-CONFIG_FILE = '/etc/gantry/pantry.conf'
+CONFIG_FILE = '/etc/pantry/pantry.conf'
 config = ConfigParser()
 
 

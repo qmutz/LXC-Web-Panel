@@ -1,6 +1,6 @@
 include *.rst
-recursive-include lwp LICENSE version
-recursive-include lwp/static *
-recursive-include lwp/templates *
-recursive-include lwp/*/templates *
-recursive-include lwp/*/static *
+recursive-include pantry LICENSE version
+recursive-include pantry/static *
+recursive-include pantry/templates *
+recursive-include pantry/*/templates *
+recursive-include pantry/*/static *
