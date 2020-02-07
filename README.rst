@@ -1,10 +1,10 @@
-Gantry: LXC-Web-Panel reloaded
+Pantry: LXC-Web-Panel reloaded
 ==========================
 
 .. image:: https://travis-ci.org/EstudioNexos/LXC-Web-Panel.svg?branch=master
     :target: https://travis-ci.org/EstudioNexos/LXC-Web-Panel
 
-Gantry is an easy to use Linux Containers manager.
+Pantry is an easy to use Linux Containers manager.
 
 - NEW Installer to make it even easier to start running.
 - Display some host and container information: IP, CPU, Mem and Disk usage.
@@ -74,7 +74,7 @@ After that continue Pyenv setup:
   python setup.py install
   ./bin/gtr        # run lwp wth debug support
 
-We recomend using /var/gantry/backups or /var/backups/gantry path.
+We recomend using /var/pantry/backups or /var/backups/pantry path.
 
 First run we will get an installer page, most of defaults are OK and just click INSTALL.
 

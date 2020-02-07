@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 import os
-
 from setuptools import setup, find_packages
 
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.rst')).read()
-VERSION = open(os.path.join(here, 'gantry/version')).read()
+VERSION = open(os.path.join(here, 'pantry/version')).read()
 
 setup(
     name='pantry',
