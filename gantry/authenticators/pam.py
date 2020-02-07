@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from lwp.utils import config
+from pantry.utils import config
 
 # try Debian PAM first (PyPAM)
 try:

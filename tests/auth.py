@@ -8,12 +8,12 @@ class TestAuths(unittest.TestCase):
     """
 
     def test_htpasswd_passwd_auth(self):
-        # FIXME the config mock is ovewrite by lwp.app load
+        # FIXME the config mock is ovewrite by pantry.app load
         #       align test file to default example.conf
         #global config
         #config = MagicMock()
         #config.get('htpasswd', 'file', return_value='/var/lwp/htpasswd')
-        from lwp.authenticators.htpasswd import htpasswd
+        from pantry.authenticators.htpasswd import htpasswd
 
         with open('/var/lwp/htpasswd', 'w') as file_pass:
             file_pass.write('user_test:L2HG274hqrFwo\n')
@@ -23,7 +23,7 @@ class TestAuths(unittest.TestCase):
         assert user.get('username') == 'user_test'
 
     def test_htpasswd_passwd_auth_wrongpass(self):
-        from lwp.authenticators.htpasswd import htpasswd
+        from pantry.authenticators.htpasswd import htpasswd
 
         with open('/var/lwp/htpasswd', 'w') as file_pass:
             file_pass.write('user_test:L2HG274hqrFwo\n')
@@ -34,7 +34,7 @@ class TestAuths(unittest.TestCase):
 
 
     def test_http(self):
-        from lwp.authenticators.http import http
+        from pantry.authenticators.http import http
 
         h = http()
         assert h.authenticate('test', 'user')

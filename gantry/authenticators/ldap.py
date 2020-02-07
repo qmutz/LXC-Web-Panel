@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from lwp.utils import read_config_file
+from pantry.utils import read_config_file
 
 import ldap as ldap_m
 

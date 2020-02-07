@@ -8,21 +8,21 @@ import os
 from flask import Flask
 from flask.ext.testing import LiveServerTestCase
 
-from lwp.app import app
-from lwp.utils import connect_db
+from pantry.app import app
+from pantry.utils import connect_db
 
 
 #class TestWebBrowser(unittest.TestCase):
 class TestWebBrowser(LiveServerTestCase):
     """
         These tests are made using a stateful programmatic web browsing
-        and use the cookie and standard login form to operate on the lwp.
+        and use the cookie and standard login form to operate on the pantry.
     """
 
     @classmethod
     def setUpClass(cls):
         # cleanup
-        shutil.copyfile('lwp.db.base', '/tmp/db.sql')
+        shutil.copyfile('pantry.db.base', '/tmp/db.sql')
         shutil.rmtree('/tmp/lxc', ignore_errors=True)
         cj = cookielib.LWPCookieJar()
         cls.br = mechanize.Browser()

@@ -1,7 +1,7 @@
 import os
 from configparser import ConfigParser, RawConfigParser
 
-CONFIG_FILE = '/etc/lwp/lwp.conf'
+CONFIG_FILE = '/etc/gantry/pantry.conf'
 config = ConfigParser()
 
 
@@ -23,7 +23,7 @@ def read_config_file():
         #~ return mode
             #~ try:
                 # fallback on local config file
-                #~ config.readfp(open('lwp.conf'))
+                #~ config.readfp(open('pantry.conf'))
             #~ except:
                 #~ print(' * cannot read config files. Exit!')
                 #~ sys.exit(1)

@@ -8,9 +8,9 @@ from configobj import ConfigObj
 from playhouse.shortcuts import model_to_dict, dict_to_model
 from flask import Blueprint, request, g, jsonify
 import lwp
-from lwp.decorators import api_auth
-from lwp.utils import ContainerSchema
-from lwp.database.models import ApiTokens, Users, Projects, Containers, Hosts
+from pantry.decorators import api_auth
+from pantry.utils import ContainerSchema
+from pantry.database.models import ApiTokens, Users, Projects, Containers, Hosts
 
 # Flask module
 mod = Blueprint('api', __name__)
@@ -31,13 +31,13 @@ def get_host_info():
     """
     info = {
         'hostname': socket.gethostname(),
-        'distribution': lwp.name_distro(),
-        'version': lwp.check_version(),
-        'network': lwp.get_net_settings(),
-        'memory': lwp.host_memory_usage(),
-        'cpu': lwp.host_cpu_percent(),
-        'disk': lwp.host_disk_usage(),
-        'uptime': lwp.host_uptime(),
+        'distribution': pantry.name_distro(),
+        'version': pantry.check_version(),
+        'network': pantry.get_net_settings(),
+        'memory': pantry.host_memory_usage(),
+        'cpu': pantry.host_cpu_percent(),
+        'disk': pantry.host_disk_usage(),
+        'uptime': pantry.host_uptime(),
     }
     return jsonify(info)
 

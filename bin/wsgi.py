@@ -1,5 +1,5 @@
-from lwp.config import read_config_file
-from lwp.app import app
+from pantry.config import read_config_file
+from pantry.app import app
 #import logging
 
 

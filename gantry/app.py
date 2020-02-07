@@ -7,13 +7,13 @@ import sys
 import jinja2
 from peewee import *
 from flask import Flask, g
-from lwp.config import config
+from pantry.config import config
 #~ from lwp import SESSION_SECRET_FILE
-from lwp.views import main, auth, api
-from lwp.dashboard.views import mod as dashboard
-from lwp.api.views import mod as api
-from lwp.containers.views import mod as containers
-from lwp.projects.views import mod as projects
+from pantry.views import main, auth, api
+from pantry.dashboard.views import mod as dashboard
+from pantry.api.views import mod as api
+from pantry.containers.views import mod as containers
+from pantry.projects.views import mod as projects
 
 SESSION_SECRET_FILE = '/etc/lwp/session_secret'
 try:
@@ -28,7 +28,7 @@ ADDRESS = config.get('global', 'address')
 PORT = int(config.get('global', 'port'))
 PREFIX = config.get('global', 'prefix')
 
-#~ from lwp.database.models import db
+#~ from pantry.database.models import db
 # Flask app
 #~ from playhouse.flask_utils import FlaskDB
 
@@ -61,9 +61,9 @@ def before_request():
     """
     executes functions before all requests
     """
-    from lwp.utils import check_session_limit
-    from lwp.api.client import GantryClient
-    from lwp.config import read_config_file
+    from pantry.utils import check_session_limit
+    from pantry.api.client import GantryClient
+    from pantry.config import read_config_file
 
     check_session_limit()
     g.api = GantryClient(read_config_file())

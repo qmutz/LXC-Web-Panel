@@ -3,7 +3,7 @@ import unittest
 import shutil
 import os
 
-import lwp.lxclite as lxc
+import pantry.lxclite as lxc
 
 class TestLxcLite(unittest.TestCase):
 

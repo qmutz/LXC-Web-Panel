@@ -5,9 +5,9 @@ import time
 
 from flask import Blueprint, request, session, redirect, url_for, render_template, flash
 
-from lwp.utils import get_token
-from lwp.config import read_config_file
-import lwp.authenticators as auth
+from pantry.utils import get_token
+from pantry.config import read_config_file
+import pantry.authenticators as auth
 
 
 config = read_config_file()

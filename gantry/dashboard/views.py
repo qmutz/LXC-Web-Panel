@@ -1,6 +1,6 @@
 from flask import Blueprint, g, render_template
-#~ from lwp.config import read_config_file
-from lwp.decorators import if_logged_in
+#~ from pantry.config import read_config_file
+from pantry.decorators import if_logged_in
 
 #~ config = read_config_file()
 
@@ -27,7 +27,7 @@ def home():
         'projects': projects,
         'clonable_containers': clonable_containers,
         'host': host,
-        #~ 'templates': lwp.get_templates_list(),
+        #~ 'templates': pantry.get_templates_list(),
         #~ 'storage_repos': storage_repos,
         #~ 'auth': AUTH,
     }

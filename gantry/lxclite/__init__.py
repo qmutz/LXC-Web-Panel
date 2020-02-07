@@ -4,7 +4,7 @@ import subprocess
 import os
 import time
 
-from lwp.exceptions import ContainerDoesntExists, ContainerAlreadyExists, ContainerAlreadyRunning, ContainerNotRunning,\
+from pantry.exceptions import ContainerDoesntExists, ContainerAlreadyExists, ContainerAlreadyRunning, ContainerNotRunning,\
     DirectoryDoesntExists, NFSDirectoryNotMounted, SnapshotError
 
 

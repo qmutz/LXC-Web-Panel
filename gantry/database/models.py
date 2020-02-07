@@ -2,7 +2,7 @@ import datetime
 #~ from flask import current_app as app
 from peewee import *
 from playhouse.db_url import connect
-from lwp.config import read_config_file
+from pantry.config import read_config_file
 
 
 def get_database(fresh_config=False):

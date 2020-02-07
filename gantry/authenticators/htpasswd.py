@@ -3,7 +3,7 @@ import sys
 import hmac
 import crypt
 
-from lwp.utils import read_config_file
+from pantry.utils import read_config_file
 
 
 class htpasswd:

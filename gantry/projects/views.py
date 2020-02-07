@@ -1,5 +1,5 @@
 from flask import Blueprint, g, render_template, request
-from lwp.decorators import if_logged_in
+from pantry.decorators import if_logged_in
 
 mod = Blueprint('projects', __name__)
 

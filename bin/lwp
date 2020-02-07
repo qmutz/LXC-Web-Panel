@@ -4,11 +4,11 @@
 import os
 import sys
 
-from lwp.config import read_config_file
+from pantry.config import read_config_file
 
 if __name__ == '__main__':
     if '--generate-session-secret' in sys.argv[1:]:
-        from lwp.app import SESSION_SECRET_FILE
+        from pantry.app import SESSION_SECRET_FILE
         key = os.urandom(24)
         with os.fdopen(os.open(SESSION_SECRET_FILE, os.O_WRONLY | os.O_CREAT, 0o644), 'bw') as handle:
             handle.write(key)
@@ -17,9 +17,9 @@ if __name__ == '__main__':
     config = read_config_file()  # init the global config object, init DEBUG
     #~ if hasattr(config_file,'setup') and config_file.setup == True:
     if 'setup_mode' in config['global'] and config['global']['setup_mode'] == 'True':
-        from lwp.installer import app, DEBUG
+        from pantry.installer import app, DEBUG
     else:
-        from lwp.app import app, DEBUG
+        from pantry.app import app, DEBUG
     app.debug = True if '--debug' in sys.argv[1:] else DEBUG
     app.run(host=app.config['ADDRESS'], port=app.config['PORT'])
     # override debug configuration from command line

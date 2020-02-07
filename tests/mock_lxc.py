@@ -8,8 +8,8 @@ import os
 from flask import Flask
 from flask.ext.testing import LiveServerTestCase
 
-from lwp.app import app
-from lwp.utils import connect_db
+from pantry.app import app
+from pantry.utils import connect_db
 
 
 class TestMockLxc(unittest.TestCase):

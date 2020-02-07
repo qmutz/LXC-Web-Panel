@@ -9,9 +9,9 @@ def id_generator(size=24, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
 from flask import Flask, request, session, g, redirect, url_for, abort, render_template
-from lwp.utils import ConfigParser
-#~ from lwp.utils import connect_db, check_session_limit, config
-#~ import lwp.lxclite as lxc
+from pantry.utils import ConfigParser
+#~ from pantry.utils import connect_db, check_session_limit, config
+#~ import pantry.lxclite as lxc
 
 DEBUG = False
 ADDRESS = 'localhost'
@@ -34,7 +34,7 @@ def get_parent_path(path):
 
 def is_already_installed():
     try:
-        from lwp.config import read_config_file
+        from pantry.config import read_config_file
         config = read_config_file()
         config.get('database', 'file')
         return True
@@ -46,7 +46,7 @@ def is_already_installed():
 def install(path):
     """
     Installer
-    """ 
+    """
     exec_path = os.path.abspath(os.path.dirname(sys.argv[0]))
     if len(path) > 0:
         return redirect('/')
@@ -58,7 +58,7 @@ def install(path):
         'can_we_install': can_we_install,
         'already_installed': already_installed,
     }
-    
+
 
     try:
         open(test_file, 'w').close()
@@ -71,11 +71,11 @@ def install(path):
         return render_template('installer.html', **context)
     context['checks'] = {}#lxc.checkconfig()
     if request.method == 'POST':
-        from lwp.utils import hash_passwd
+        from pantry.utils import hash_passwd
         f = request.form
         datadir = f.get('datadir','/var/lwp')
         create(datadir)
-        conffile = f.get('conffile','/etc/lwp/lwp.conf')
+        conffile = f.get('conffile','/etc/lwp/pantry.conf')
         create(get_parent_path(conffile))
         config = ConfigParser()
         config['global'] = {}
@@ -88,7 +88,7 @@ def install(path):
         config['storage_repository']['local'] = f.get('local_storage_repository','backups')
         create(os.path.join(datadir,config['storage_repository']['local']))
         config['database'] = {}
-        config['database']['file'] = f.get('database_uri','sqlite:////var/lwp/lwp.db')
+        config['database']['file'] = f.get('database_uri','sqlite:////var/lwp/pantry.db')
         config['session'] = {}
         config['session']['time'] = f.get('time','10')
         config['api'] = {}
@@ -97,8 +97,8 @@ def install(path):
         config['api']['token'] = f.get('api_token',internal_token)
         with open(conffile, 'w') as configfile:
             config.write(configfile)
-        
-        from lwp.database.models import get_database,Users,ApiTokens,Projects,Hosts,Containers,ContainerTag,Tags
+
+        from pantry.database.models import get_database,Users,ApiTokens,Projects,Hosts,Containers,ContainerTag,Tags
 
         database = get_database()
         database.create_tables([Users,ApiTokens,Projects,Hosts,Containers,ContainerTag,Tags])

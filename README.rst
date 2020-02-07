@@ -113,7 +113,7 @@ or
 
   yum install python-pam
 
-With default ``login`` service all valid linux users can login to lwp.
+With default ``login`` service all valid linux users can login to pantry.
 Many more options are available via PAM Configuration, see PAM docs.
 
 HTTP

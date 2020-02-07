@@ -1,5 +1,5 @@
 from flask import session, request, render_template, jsonify
-from lwp.database.models import ApiTokens
+from pantry.database.models import ApiTokens
 
 def if_logged_in(function=render_template, f_args=('login.html', )):
     """

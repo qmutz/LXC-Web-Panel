@@ -4,7 +4,7 @@ import subprocess
 import hashlib
 
 from flask import session, flash, request, jsonify
-from lwp.config import ConfigParser, read_config_file
+from pantry.config import ConfigParser, read_config_file
 from marshmallow import Schema, fields, pprint
 
 def format_release(output):

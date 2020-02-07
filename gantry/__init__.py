@@ -9,10 +9,10 @@ import platform
 import subprocess
 import distro
 
-from lwp.exceptions import ContainerNotExists, LxcConfigFileNotComplete
-from lwp.lxclite import exists, stopped
-from lwp.lxclite import lxcdir
-from lwp.config import ConfigParser, RawConfigParser
+from pantry.exceptions import ContainerNotExists, LxcConfigFileNotComplete
+from pantry.lxclite import exists, stopped
+from pantry.lxclite import lxcdir
+from pantry.config import ConfigParser, RawConfigParser
 
 class NormalizeConfig(object):
     def __init__(self, fp):
@@ -224,7 +224,7 @@ def get_container_settings(name, status=None):
     Returns a dict of all utils settings for a container
     status is optional and should be set to RUNNING to retrieve ipv4 config (if unset)
     """
-    from lwp.utils import cgroup_ext
+    from pantry.utils import cgroup_ext
     filename = '{}/{}/config'.format(lxcdir(), name)
     if not file_exist(filename):
         return False
@@ -293,7 +293,7 @@ def push_config_value(key, value, container=None):
     """
     replace a var in a container config file
     """
-    from lwp.utils import cgroup_ext
+    from pantry.utils import cgroup_ext
     def save_cgroup_devices(filename=None):
         """
         returns multiple values (lxc.cgroup.devices.deny and lxc.cgroup.devices.allow) in a list.

@@ -1,6 +1,6 @@
 from flask import Blueprint, g, render_template, request, jsonify, session, flash, redirect, url_for
-from lwp.decorators import if_logged_in
-from lwp.utils import cgroup_ext
+from pantry.decorators import if_logged_in
+from pantry.utils import cgroup_ext
 
 mod = Blueprint('containers', __name__)
 
@@ -31,9 +31,9 @@ def edit(container_name):
     """
     container = g.api.get_container(container_name)
     host = g.api.get_host()
-    #~ host['memory'] = lwp.host['memory']_usage()
+    #~ host['memory'] = pantry.host['memory']_usage()
     #~ info = lxc.info(container)
-    #~ cfg = lwp.get_container_settings(container, info['state'])
+    #~ cfg = pantry.get_container_settings(container, info['state'])
     if request.method == 'POST':
         form = request.form.copy()
         # convert boolean in correct value for lxc, if checkbox is inset value is not submitted inside POST
@@ -60,17 +60,17 @@ def edit(container_name):
             
             
             #~ if re.match(cgroup_ext[option][1], form[option]):
-                #~ lwp.push_config_value(cgroup_ext[option][0], form[option], container=container)
+                #~ pantry.push_config_value(cgroup_ext[option][0], form[option], container=container)
                 #~ flash(cgroup_ext[option][2], 'success')
             #~ else:
                 #~ flash('Cannot validate value for option {}. Unsaved!'.format(option), 'error')
             
         # we should re-read container configuration now to be coherent with the newly saved values
-        #~ cfg = lwp.get_container_settings(container)
+        #~ cfg = pantry.get_container_settings(container)
 
         #~ info = lxc.info(container)
-    #~ infos = {'status': container['state'], 'pid': info['pid'], 'memusg': lwp.memory_usage(container)}
-    #~ infos = {'status': container['state'], 'memusg': lwp.memory_usage(container['name'])}
+    #~ infos = {'status': container['state'], 'pid': info['pid'], 'memusg': pantry.memory_usage(container)}
+    #~ infos = {'status': container['state'], 'memusg': pantry.memory_usage(container['name'])}
     # prepare a regex dict from cgroups_ext definition
     regex = {}
     for k, v in cgroup_ext.items():
@@ -314,7 +314,7 @@ def refresh_memory(name=None):
                                })
         return jsonify(data=containers)
     elif name == 'host':
-        #~ return jsonify(lwp.host['memory']_usage())
+        #~ return jsonify(pantry.host['memory']_usage())
         return jsonify(host['memory'])
     return jsonify(host['memory'])
-    #~ return jsonify({'memusg': lwp.memory_usage(name)})
+    #~ return jsonify({'memusg': pantry.memory_usage(name)})

@@ -1,3 +1,9 @@
+Version 0.11-beta2 (07-02-2020)
+===========================================================
+
+More cleanup (should have started from scratch?)
+Rename to pantry
+
 Version 0.10-beta1 (24-09-2018)
 ===========================================================
 
@@ -51,5 +57,5 @@ Version 0.8 (12-02-2015)
 
 TODO
 
-Thanks to Alexander Knöbel, Boscorillium, Claudio Cesar Sanchez Tejeda, 
+Thanks to Alexander Knöbel, Boscorillium, Claudio Cesar Sanchez Tejeda,
 Claudio Valenti and Lukáš Raška for their contributions to this release.

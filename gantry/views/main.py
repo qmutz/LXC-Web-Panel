@@ -9,12 +9,12 @@ import subprocess
 from flask import Blueprint, request, session, g, redirect, url_for, abort, render_template, flash, jsonify
 from flask import current_app as app
 import lwp
-#~ import lwp.lxclite as lxc
-from lwp.utils import hash_passwd, cgroup_ext
-from lwp.config import read_config_file
-from lwp.decorators import if_logged_in
-from lwp.views.auth import AUTH
-from lwp.api.client import GantryClient
+#~ import pantry.lxclite as lxc
+from pantry.utils import hash_passwd, cgroup_ext
+from pantry.config import read_config_file
+from pantry.decorators import if_logged_in
+from pantry.views.auth import AUTH
+from pantry.api.client import GantryClient
 
 config = read_config_file()
 
@@ -71,7 +71,7 @@ def lxc_net():
 
     if request.method == 'POST':
         if lxc.running() == []:
-            cfg = lwp.get_net_settings()
+            cfg = pantry.get_net_settings()
             ip_regex = '(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)'
 
             form = {}
@@ -80,39 +80,39 @@ def lxc_net():
             form['use'] = request.form.get('use', None)
 
             if form['use'] != cfg['use']:
-                lwp.push_net_value('USE_LXC_BRIDGE', 'true' if form['use'] else 'false')
+                pantry.push_net_value('USE_LXC_BRIDGE', 'true' if form['use'] else 'false')
 
             if form['bridge'] and form['bridge'] != cfg['bridge'] and \
                     re.match('^[a-zA-Z0-9_-]+$', form['bridge']):
-                lwp.push_net_value('LXC_BRIDGE', form['bridge'])
+                pantry.push_net_value('LXC_BRIDGE', form['bridge'])
 
             if form['address'] and form['address'] != cfg['address'] and \
                     re.match('^%s$' % ip_regex, form['address']):
-                lwp.push_net_value('LXC_ADDR', form['address'])
+                pantry.push_net_value('LXC_ADDR', form['address'])
 
             if form['netmask'] and form['netmask'] != cfg['netmask'] and \
                     re.match('^%s$' % ip_regex, form['netmask']):
-                lwp.push_net_value('LXC_NETMASK', form['netmask'])
+                pantry.push_net_value('LXC_NETMASK', form['netmask'])
 
             if form['network'] and form['network'] != cfg['network'] and \
                     re.match('^%s(?:/\d{1,2}|)$' % ip_regex, form['network']):
-                lwp.push_net_value('LXC_NETWORK', form['network'])
+                pantry.push_net_value('LXC_NETWORK', form['network'])
 
             if form['range'] and form['range'] != cfg['range'] and \
                     re.match('^%s,%s$' % (ip_regex, ip_regex), form['range']):
-                lwp.push_net_value('LXC_DHCP_RANGE', form['range'])
+                pantry.push_net_value('LXC_DHCP_RANGE', form['range'])
 
             if form['max'] and form['max'] != cfg['max'] and \
                     re.match('^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$', form['max']):
-                lwp.push_net_value('LXC_DHCP_MAX', form['max'])
+                pantry.push_net_value('LXC_DHCP_MAX', form['max'])
 
-            if lwp.net_restart() == 0:
+            if pantry.net_restart() == 0:
                 flash(u'LXC Network settings applied successfully!', 'success')
             else:
                 flash(u'Failed to restart LXC networking.', 'error')
         else:
             flash(u'Stop all containers before restart lxc-net.', 'warning')
-    return render_template('lxc-net.html', containers=lxc.ls(), cfg=lwp.get_net_settings(), running=lxc.running(), dist=lwp.name_distro(), host=socket.gethostname())
+    return render_template('lxc-net.html', containers=lxc.ls(), cfg=pantry.get_net_settings(), running=lxc.running(), dist=pantry.name_distro(), host=socket.gethostname())
 
 
 @mod.route('/lwp/users', methods=['POST', 'GET'])
@@ -398,9 +398,9 @@ def backup_container():
 @if_logged_in()
 def refresh_info():
     context = {
-        'cpu': lwp.host_cpu_percent(),
-        'uptime': lwp.host_uptime(),
-        'disk': lwp.host_disk_usage()
+        'cpu': pantry.host_cpu_percent(),
+        'uptime': pantry.host_uptime(),
+        'disk': pantry.host_disk_usage()
     }
     return jsonify(**context)
 

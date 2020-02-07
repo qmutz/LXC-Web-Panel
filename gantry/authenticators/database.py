@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from lwp.utils import hash_passwd
-from lwp.database.models import Users
+from pantry.utils import hash_passwd
+from pantry.database.models import Users
 
 
 class database:

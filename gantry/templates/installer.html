@@ -36,7 +36,7 @@
                     <legend>Main</legend>
                     <div class="form-group">
                         <label>Configuration file</label>
-                        <input class="form-control" id="conffile" type="text" placeholder="/etc/lwp/lwp.conf" value="/etc/lwp/lwp.conf" name="conffile" disabled>
+                        <input class="form-control" id="conffile" type="text" placeholder="/etc/lwp/pantry.conf" value="/etc/lwp/pantry.conf" name="conffile" disabled>
                         <small class="form-text text-muted">Cannot be changed</small>
                     </div>
                     <div class="form-group">
@@ -91,10 +91,10 @@
                         This database is also used if access for user data if mode is "database".
                         </small>
                         <label>Database URI</label>
-                        <input class="form-control" id="database_uri" name="database_uri" value="sqlite:////var/lwp/lwp.db" required>
+                        <input class="form-control" id="database_uri" name="database_uri" value="sqlite:////var/lwp/pantry.db" required>
                         <small class="form-text text-muted">
                             Easiest one for one user is SQLite<br>
-                            sqlite:////var/lwp/lwp.db<br>
+                            sqlite:////var/lwp/pantry.db<br>
                             mysql://dbuser:dbpassword@localhost:3306/lwp
                             postgresql://postgres:dbpassword@localhost:5432/lwp<br>
                         </small>

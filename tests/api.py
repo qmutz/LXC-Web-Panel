@@ -9,8 +9,8 @@ import os
 from flask import Flask
 from flask.ext.testing import LiveServerTestCase
 
-from lwp.app import app
-from lwp.utils import connect_db
+from pantry.app import app
+from pantry.utils import connect_db
 
 token = 'myrandomapites0987'
 
@@ -20,7 +20,7 @@ class TestApi(LiveServerTestCase):
     type_json = {'Content-Type': 'application/json'}
 
     def create_app(self):
-        shutil.copyfile('lwp.db', '/tmp/db.sql')
+        shutil.copyfile('pantry.db', '/tmp/db.sql')
         self.db = connect_db('/tmp/db.sql')
         self.db.execute('insert into api_tokens(description, token) values(?, ?)', ['test', token])
         self.db.commit()
