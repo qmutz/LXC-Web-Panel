@@ -7,6 +7,7 @@ import re
 import time
 import platform
 import subprocess
+import distro
 
 from lwp.exceptions import ContainerNotExists, LxcConfigFileNotComplete
 from lwp.lxclite import exists, stopped
@@ -17,7 +18,7 @@ class NormalizeConfig(object):
     def __init__(self, fp):
         self.fp = open(fp,'r')
         self.sechead = '[DEFAULT]\n'
-        
+
     def read(self):
         config = StringIO()
         config.write(self.sechead)
@@ -154,7 +155,8 @@ def name_distro():
     """
     return the System version
     """
-    dist = '%s %s - %s' % platform.linux_distribution()
+    # ~ print(dir(platform))
+    dist = '%s %s - %s' % distro.linux_distribution(full_distribution_name=False)
 
     return dist
 
@@ -204,7 +206,7 @@ def get_net_settings():
     normalized = NormalizeConfig(filename).read()
     config = ConfigParser()
     config.readfp(normalized)
-    
+
     settings = {
         'use': config.get('DEFAULT', 'USE_LXC_BRIDGE').strip('"'),
         'bridge': config.get('DEFAULT', 'LXC_BRIDGE').strip('"'),

@@ -1,1 +1,1 @@
-#git+https://github.com/lxc/python3-lxc.git
+git+https://github.com/lxc/python3-lxc.git

@@ -27,8 +27,8 @@ setup(
         'peewee',
         'requests',
         'marshmallow',
-        'python3-lxc',
         'configobj',
+        'distro',
     ],
     scripts=['bin/lwp'],
 )

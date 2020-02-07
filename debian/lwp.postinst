@@ -1,5 +1,0 @@
-#!/bin/sh
-
-[ -e /etc/lwp/session_secret ] || /usr/bin/lwp --generate-session-secret
-
-#DEBHELPER#

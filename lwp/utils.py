@@ -19,7 +19,7 @@ def format_release(output):
     return release
 
 """
-['__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', 
+['__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__',
 
 'add_device_net', 'add_device_node', 'append_config_item', 'attach', 'attach_interface', 'attach_wait', 'clear_config', 'clear_config_item', 'clone', 'config_file_name', 'console', 'console_getfd', 'controllable', 'create', 'defined', 'destroy', 'detach_interface', 'freeze', 'get_cgroup_item', 'get_config_item', 'get_config_path', 'get_interfaces', 'get_ips', 'get_keys', 'get_running_config_item', 'init_pid', 'load_config', 'name', 'network', 'reboot', 'remove_device_node', 'rename', 'running', 'save_config', 'set_cgroup_item', 'set_config_item', 'set_config_path', 'shutdown', 'snapshot', 'snapshot_destroy', 'snapshot_list', 'snapshot_restore', 'start', 'state', 'stop', 'unfreeze', 'wait']
 
@@ -35,14 +35,17 @@ class ContainerSchema(Schema):
     frozen = fields.Bool()
     #~ interfaces = fields.List(fields.String)
     interfaces = fields.Function(lambda obj: obj.get_interfaces())
-    snapshots = fields.Function(lambda obj: obj.snapshot_list())
+
+    # ~ snapshots = fields.Function(lambda obj: obj.snapshot_list())
+
     ips = fields.Function(lambda obj: obj.get_ips())
     #~ max_mem = fields.Function(lambda obj: obj.get_cgroup_item("memory.limit_in_bytes"))
     runtime = fields.Method('get_runtime_values')
     settings = fields.Method('get_settings')
     os_release = fields.Method('get_os_release')
-    
+
     def get_os_release(self, obj):
+        print(dir(obj), obj.name)
         release_files = ('os-release','lsb-release','fedora-release','redhat-release','centos-release','plamo-release')
         output = 'Unknown'.encode()
         for release_file in release_files:
@@ -53,7 +56,7 @@ class ContainerSchema(Schema):
             if output:
                 return format_release(output)
         return output
-                
+
     def get_runtime_values(self, obj):
         cgroups = [
             'memory.usage_in_bytes',
@@ -73,8 +76,9 @@ class ContainerSchema(Schema):
             if to_int_key in values:
                 values[to_int_key] = int(values[to_int_key])
         return values
-        
+
     def get_settings(self, obj):
+        print(dir(obj), obj.name)
         network_settings = [
             'lxc.network.type',
             'lxc.network.script_up',
@@ -105,7 +109,7 @@ class ContainerSchema(Schema):
         values = {}
         for setting in settings:
             setting_name = setting.replace('lxc.','')
-            # ~ print(setting_name, setting)
+            print(obj, setting_name, setting)
             values[setting_name] = obj.get_config_item(setting)
         values['networks'] = {}
         count = 0
@@ -113,7 +117,7 @@ class ContainerSchema(Schema):
         for network in networks:
             values['networks'][network] = {}
             for nk in network_settings:
-                new_key = nk.replace('lxc.network.','lxc.network.{}.'.format(count))        
+                new_key = nk.replace('lxc.network.','lxc.network.{}.'.format(count))
                 values['networks'][network][nk.replace('lxc.network.','')] = obj.get_config_item(new_key)
             count +=1
         return values

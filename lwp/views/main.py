@@ -39,18 +39,13 @@ def plain_containers(_list):
     container_list = []
     for container in _list:
         container_list.append(container)
-    return container_list 
-
-
-    
-
+    return container_list
 
 
 @mod.route('/about')
 @if_logged_in()
 def about():
-    """
-    About page
+    """ About page
     """
     gantry = GantryClient(config)
     host_info = g.api.get_host()
@@ -217,7 +212,7 @@ def lwp_users():
                 flash(u'Updated', 'success')
             else:
                 flash(u'Invalid name!', 'error')
-            
+
         else:
             flash(u'Unknown error!', 'error')
     context = {
@@ -255,7 +250,7 @@ def lwp_tokens():
         return redirect(url_for('main.lwp_tokens'))
     context = {
         'tokens': tokens,
-        
+
     }
     return render_template('tokens.html', **context)
 
@@ -307,7 +302,7 @@ def checkconfig():
             #~ except lxc.SnapshotError:
                 #~ operation_message = u'Error with snapshot for {}!'.format(name)
                 #~ flash(operation_message, 'error')
-                
+
             #~ if out and out == 0:
                 #~ operation_message = u'Operation on snapshot for container {}'.format(name)
                 #~ flash(operation_message, 'success')
@@ -319,11 +314,11 @@ def checkconfig():
             #~ if name == '':
                 #~ flash(u'Please enter a container name!', 'error')
             #~ else:
-                #~ flash(u'Invalid name for \"%s\"!' % name, 'error')    
+                #~ flash(u'Invalid name for \"%s\"!' % name, 'error')
     #~ snapshots = lxc.snapshots(name)
     #~ return render_template('snapshots.html', container=name, snapshots=snapshots, operation_message=operation_message)
 
-    
+
 #~ @mod.route('/action/copy-container', methods=['GET', 'POST'])
 #~ @if_logged_in()
 #~ def copy_container():
@@ -374,9 +369,9 @@ def backup_container():
             if sr_type in sr:
                 sr_path = sr[1]
                 break
-                
+
         backup_failed = True
-        
+
         try:
             backup_file = lxc.backup(container=container, sr_type=sr_type, destination=sr_path)
             backup_failed = False

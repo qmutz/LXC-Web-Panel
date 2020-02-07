@@ -14,7 +14,6 @@ if __name__ == '__main__':
             handle.write(key)
             exit(0)
 
-    
     config = read_config_file()  # init the global config object, init DEBUG
     #~ if hasattr(config_file,'setup') and config_file.setup == True:
     if 'setup_mode' in config['global'] and config['global']['setup_mode'] == 'True':
