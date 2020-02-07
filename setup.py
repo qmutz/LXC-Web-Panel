@@ -8,9 +8,9 @@ README = open(os.path.join(here, 'README.rst')).read()
 VERSION = open(os.path.join(here, 'gantry/version')).read()
 
 setup(
-    name='gantry',
+    name='pantry',
     version=VERSION,
-    description='Gantry LXC Web Panel',
+    description='Pantry LXC Web Panel',
     long_description=README,
     author='EstudioNexos, Claudio Mignanti',
     author_email='hola@estudionexos.com, c.mignanti@gmail.com',
@@ -19,5 +19,5 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[],
-    scripts=['bin/gtr'],
+    scripts=['bin/ptr'],
 )
